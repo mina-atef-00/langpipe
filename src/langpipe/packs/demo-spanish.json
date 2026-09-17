@@ -1,0 +1,146 @@
+{
+  "meta": {
+    "name": "demo-spanish",
+    "language_code": "es",
+    "language_name": "Spanish",
+    "script": "latin",
+    "tokenizer": "word",
+    "rtl": false,
+    "note": "Spanish uses the Latin script and word tokenisation. A Chinese pack would set script=han and tokenizer=char. An Arabic pack would set script=arab, tokenizer=word, rtl=true. These fields are the only language-specific configuration; the generator never branches on a language code."
+  },
+  "vocabulary": [
+    {"l1": "hello", "l2": "hola", "stage": 1, "pos": "greeting", "tags": ["core"]},
+    {"l1": "goodbye", "l2": "adiós", "stage": 1, "pos": "greeting", "tags": ["core"]},
+    {"l1": "thank you", "l2": "gracias", "stage": 1, "pos": "phrase", "tags": ["core"]},
+    {"l1": "please", "l2": "por favor", "stage": 1, "pos": "phrase", "tags": ["core"]},
+    {"l1": "yes", "l2": "sí", "stage": 1, "pos": "adverb", "tags": ["core"]},
+    {"l1": "no", "l2": "no", "stage": 1, "pos": "adverb", "tags": ["core"]},
+    {"l1": "water", "l2": "agua", "stage": 1, "pos": "noun", "tags": ["noun"]},
+    {"l1": "bread", "l2": "pan", "stage": 1, "pos": "noun", "tags": ["noun"]},
+    {"l1": "house", "l2": "casa", "stage": 1, "pos": "noun", "tags": ["noun"]},
+    {"l1": "dog", "l2": "perro", "stage": 1, "pos": "noun", "tags": ["noun"], "example": "El perro es grande.", "example_translation": "The dog is big."},
+    {"l1": "cat", "l2": "gato", "stage": 1, "pos": "noun", "tags": ["noun"]},
+    {"l1": "to eat", "l2": "comer", "stage": 1, "pos": "verb", "tags": ["verb"], "example": "Yo como pan.", "example_translation": "I eat bread."},
+    {"l1": "to drink", "l2": "beber", "stage": 1, "pos": "verb", "tags": ["verb"]},
+    {"l1": "I", "l2": "yo", "stage": 1, "pos": "pronoun", "tags": ["pronoun"]},
+    {"l1": "you", "l2": "tú", "stage": 1, "pos": "pronoun", "tags": ["pronoun"]},
+    {"l1": "he", "l2": "él", "stage": 1, "pos": "pronoun", "tags": ["pronoun"]},
+    {"l1": "she", "l2": "ella", "stage": 1, "pos": "pronoun", "tags": ["pronoun"]},
+    {"l1": "good", "l2": "bueno", "stage": 1, "pos": "adjective", "tags": ["adjective"]},
+    {"l1": "big", "l2": "grande", "stage": 1, "pos": "adjective", "tags": ["adjective"]},
+    {"l1": "small", "l2": "pequeño", "stage": 1, "pos": "adjective", "tags": ["adjective"], "example": "La casa es pequeña.", "example_translation": "The house is small."},
+    {"l1": "red", "l2": "rojo", "stage": 1, "pos": "adjective", "tags": ["adjective"]},
+    {"l1": "blue", "l2": "azul", "stage": 1, "pos": "adjective", "tags": ["adjective"]},
+    {"l1": "book", "l2": "libro", "stage": 1, "pos": "noun", "tags": ["noun"]},
+    {"l1": "table", "l2": "mesa", "stage": 1, "pos": "noun", "tags": ["noun"]},
+    {"l1": "day", "l2": "día", "stage": 1, "pos": "noun", "tags": ["noun"]},
+
+    {"l1": "sun", "l2": "sol", "stage": 2, "pos": "noun", "tags": ["noun"]},
+    {"l1": "moon", "l2": "luna", "stage": 2, "pos": "noun", "tags": ["noun"]},
+    {"l1": "night", "l2": "noche", "stage": 2, "pos": "noun", "tags": ["noun"]},
+    {"l1": "morning", "l2": "mañana", "stage": 2, "pos": "noun", "tags": ["noun"]},
+    {"l1": "to speak", "l2": "hablar", "stage": 2, "pos": "verb", "tags": ["verb"]},
+    {"l1": "to live", "l2": "vivir", "stage": 2, "pos": "verb", "tags": ["verb"]},
+    {"l1": "to work", "l2": "trabajar", "stage": 2, "pos": "verb", "tags": ["verb"]},
+    {"l1": "man", "l2": "hombre", "stage": 2, "pos": "noun", "tags": ["noun"]},
+    {"l1": "woman", "l2": "mujer", "stage": 2, "pos": "noun", "tags": ["noun"]},
+    {"l1": "child", "l2": "niño", "stage": 2, "pos": "noun", "tags": ["noun"]},
+    {"l1": "friend", "l2": "amigo", "stage": 2, "pos": "noun", "tags": ["noun"]},
+    {"l1": "city", "l2": "ciudad", "stage": 2, "pos": "noun", "tags": ["noun"]},
+
+    {"l1": "to want", "l2": "querer", "stage": 3, "pos": "verb", "tags": ["verb"]},
+    {"l1": "to be able to", "l2": "poder", "stage": 3, "pos": "verb", "tags": ["verb"]},
+    {"l1": "to have", "l2": "tener", "stage": 3, "pos": "verb", "tags": ["verb"]},
+    {"l1": "to go", "l2": "ir", "stage": 3, "pos": "verb", "tags": ["verb"]},
+    {"l1": "to see", "l2": "ver", "stage": 3, "pos": "verb", "tags": ["verb"]},
+    {"l1": "food", "l2": "comida", "stage": 3, "pos": "noun", "tags": ["noun"]},
+    {"l1": "time", "l2": "tiempo", "stage": 3, "pos": "noun", "tags": ["noun"]},
+    {"l1": "year", "l2": "año", "stage": 3, "pos": "noun", "tags": ["noun"]},
+    {"l1": "week", "l2": "semana", "stage": 3, "pos": "noun", "tags": ["noun"]},
+    {"l1": "money", "l2": "dinero", "stage": 3, "pos": "noun", "tags": ["noun"]},
+    {"l1": "family", "l2": "familia", "stage": 3, "pos": "noun", "tags": ["noun"]},
+
+    {"l1": "to think", "l2": "pensar", "stage": 4, "pos": "verb", "tags": ["verb"]},
+    {"l1": "to know", "l2": "saber", "stage": 4, "pos": "verb", "tags": ["verb"]},
+    {"l1": "to say", "l2": "decir", "stage": 4, "pos": "verb", "tags": ["verb"]},
+    {"l1": "world", "l2": "mundo", "stage": 4, "pos": "noun", "tags": ["noun"]},
+    {"l1": "life", "l2": "vida", "stage": 4, "pos": "noun", "tags": ["noun"]},
+    {"l1": "people", "l2": "gente", "stage": 4, "pos": "noun", "tags": ["noun"]},
+    {"l1": "problem", "l2": "problema", "stage": 4, "pos": "noun", "tags": ["noun"]},
+    {"l1": "reason", "l2": "razón", "stage": 4, "pos": "noun", "tags": ["noun"]}
+  ],
+  "grammar": [
+    {
+      "name": "ser (permanent to be)",
+      "stage": 1,
+      "explanation": "Ser describes permanent qualities and identity.",
+      "examples": [
+        {"prompt": "Complete: Yo ___ estudiante.", "answer": "soy"},
+        {"prompt": "Complete: Él ___ alto.", "answer": "es"}
+      ]
+    },
+    {
+      "name": "noun-adjective agreement",
+      "stage": 1,
+      "explanation": "Adjectives agree in gender and number with their noun.",
+      "examples": [
+        {"prompt": "Complete: la casa ___ (small)", "answer": "pequeña"},
+        {"prompt": "Complete: el libro ___ (red)", "answer": "rojo"}
+      ]
+    },
+    {
+      "name": "present tense of -ar verbs",
+      "stage": 2,
+      "explanation": "Regular -ar verbs drop -ar and add -o, -as, -a.",
+      "examples": [
+        {"prompt": "Complete: Yo ___ (hablar) español.", "answer": "hablo"},
+        {"prompt": "Complete: Tú ___ (trabajar) mucho.", "answer": "trabajas"}
+      ]
+    },
+    {
+      "name": "gustar",
+      "stage": 2,
+      "explanation": "Gustar means 'to be pleasing'; the liked thing is the subject.",
+      "examples": [
+        {"prompt": "Translate: I like the book.", "answer": "Me gusta el libro."},
+        {"prompt": "Translate: I like dogs.", "answer": "Me gustan los perros."}
+      ]
+    },
+    {
+      "name": "tener que + infinitive",
+      "stage": 3,
+      "explanation": "Tener que expresses obligation ('have to').",
+      "examples": [
+        {"prompt": "Translate: I have to work.", "answer": "Tengo que trabajar."},
+        {"prompt": "Translate: You have to eat.", "answer": "Tienes que comer."}
+      ]
+    },
+    {
+      "name": "direct object pronouns",
+      "stage": 3,
+      "explanation": "Lo/la replace a direct object.",
+      "examples": [
+        {"prompt": "Translate: I eat it (the bread).", "answer": "Lo como."},
+        {"prompt": "Translate: I see it (the house).", "answer": "La veo."}
+      ]
+    },
+    {
+      "name": "present subjunctive",
+      "stage": 4,
+      "explanation": "Expresses wishes and doubt; -ar verbs take -e endings.",
+      "examples": [
+        {"prompt": "Complete: Quiero que tú ___ (hablar) conmigo.", "answer": "hables"},
+        {"prompt": "Complete: Espero que él ___ (trabajar) mañana.", "answer": "trabaje"}
+      ]
+    },
+    {
+      "name": "present perfect",
+      "stage": 4,
+      "explanation": "Haber plus a past participle.",
+      "examples": [
+        {"prompt": "Complete: Yo ___ comido.", "answer": "he"},
+        {"prompt": "Translate: I have eaten.", "answer": "He comido."}
+      ]
+    }
+  ]
+}
