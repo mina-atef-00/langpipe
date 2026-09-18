@@ -7,6 +7,27 @@ langpipe is a command-line tool that turns a list of words and grammar points in
 [![CI](https://github.com/mina-atef-00/langpipe/actions/workflows/ci.yml/badge.svg)](https://github.com/mina-atef-00/langpipe/actions/workflows/ci.yml)
 ![langpipe](https://img.shields.io/badge/langpipe-v0.1-cba6f7?style=flat-square)
 
+![langpipe as a Hermes plugin](docs/img/banner-hermes-plugin.svg)
+
+## Hermes plugin
+
+langpipe is also a Hermes plugin. The bundled skill runs a guided learner
+interview (language, motivation, time budget, deadline, style, history),
+matches the answers to a proven preset, then drives the langpipe CLI to
+produce the plan, generate practice cards, record reviews, and report
+retention analytics:
+
+interview -> plan -> generate -> review -> sync
+
+Install from the local plugin directory:
+
+```bash
+cp -r ~/.hermes/plugins/langpipe ~/.hermes/skills/langpipe
+```
+
+See SPEC.md for the technical detail on how the skill and the CLI divide the
+work.
+
 ## Sixty seconds
 
 Start a learner and load the bundled demo Spanish pack:
