@@ -7,7 +7,11 @@ langpipe is a command-line tool that turns a list of words and grammar points in
 [![CI](https://github.com/mina-atef-00/langpipe/actions/workflows/ci.yml/badge.svg)](https://github.com/mina-atef-00/langpipe/actions/workflows/ci.yml)
 ![langpipe](https://img.shields.io/badge/langpipe-v0.1-cba6f7?style=flat-square)
 
-![langpipe as a Hermes plugin](docs/img/banner-hermes-plugin.svg)
+| In action | What you are looking at |
+|---|---|
+| ![langpipe as a Hermes plugin](docs/img/plugin-action.svg) | The langpipe skill loaded in Hermes: the learner interview runs, the SRS-first preset is picked, and the four-stage plan is printed. |
+| ![generate and review with SM-2](docs/img/cards-review.svg) | `generate` builds 57 practice cards; repeated `review` runs grow the SM-2 interval from 0d to 130d with a rising ease factor. |
+| ![idempotent sync and stats](docs/img/stats-sync.svg) | `sync` pushes 56 notes; a re-run adds 0 — sync is idempotent. `stats` reports retention and the review load forecast. |
 
 ## Hermes plugin
 
