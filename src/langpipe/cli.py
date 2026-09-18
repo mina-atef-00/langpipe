@@ -6,6 +6,7 @@ Commands: init, plan, generate, cards, review, stats, sync. Run
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import typer
@@ -286,9 +287,21 @@ def sync(
         database.close()
         raise typer.Exit(code=1)
 
+    # Content-keyed duplicate detection: a note's identity is the hash of its
+    # front and back. The set of already-synced identities is stored in the
+    # database, so re-running sync skips notes the backend already has and is
+    # idempotent across runs (a fresh in-memory backend per run still counts).
+    def note_key(front: str, back: str) -> str:
+        return hashlib.sha256(f"{front}\x1f{back}".encode()).hexdigest()
+
+    synced_key = f"synced_notes:{deck}:{stage}"
+    already_synced = {
+        k for k in (database.get_meta(synced_key) or "").split(",") if k
+    }
+    fresh_cards = [c for c in selected if note_key(c.prompt, c.answer) not in already_synced]
     notes = [
         SyncNote(front=c.prompt, back=c.answer, tags=[c.template, f"stage-{c.stage}"])
-        for c in selected
+        for c in fresh_cards
     ]
 
     backend = MockAnkiBackend() if mock else AnkiConnectBackend(url)
@@ -305,6 +318,22 @@ def sync(
         )
         database.close()
         raise typer.Exit(code=1)
+
+    # Record the content-keyed note-identity of the notes the backend just
+    # accepted, so a later re-sync skips them and stays idempotent.
+    synced_key = f"synced_notes:{deck}:{stage}"
+    previously_synced = {
+        k for k in (database.get_meta(synced_key) or "").split(",") if k
+    }
+    accepted_hashes = [
+        note_key(c.prompt, c.answer)
+        for c, ok in zip(fresh_cards, result.accepted, strict=False)
+        if ok
+    ]
+    database.set_meta(
+        synced_key,
+        ",".join(sorted(previously_synced | set(accepted_hashes))),
+    )
 
     typer.echo(f"Sync to backend '{result.backend}' (deck '{deck}'):")
     typer.echo(f"  {result.notes_added} notes added.")

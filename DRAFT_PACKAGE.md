@@ -155,8 +155,8 @@ Per-stage progress
 ```
 $ langpipe sync --mock --stage 1
 Sync to backend 'mock' (deck 'langpipe'):
-  57 notes added.
-  note ids: [1, 2, 3, ... 57]
+  56 notes added.
+  note ids: [1, 2, 3, 4, ... 56]
 ```
 
 With a real Anki running the AnkiConnect add-on, drop `--mock`. If the server is not reachable, the command reports the failure and exits with a non-zero code instead of pretending.
@@ -362,8 +362,17 @@ Per-stage progress
 ```
 $ langpipe sync --mock --stage 1
 Sync to backend 'mock' (deck 'langpipe'):
-  57 notes added.
-  note ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57]
+  56 notes added.
+  note ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56]
+```
+
+### sync is idempotent (running it again)
+
+```
+$ langpipe sync --mock --stage 1
+Sync to backend 'mock' (deck 'langpipe'):
+  0 notes added.
+  note ids: []
 ```
 
 ### sync with no Anki running (failure detected, non-zero exit)
@@ -442,7 +451,7 @@ The honest weak points, not dressed up.
 
 4. Retention is self-reported. A learner grades their own recall 0 to 5. There is no objective check, and a learner can game the numbers by marking everything perfect. This is a real limitation of the measurement, not just of the code.
 
-5. The Anki integration is thin. It exports notes and detects when Anki is absent. It does not import review history, synchronize two ways, or reconcile schedules. A reviewer looking for a serious Anki workflow will see a one-way pipe.
+5. The Anki integration is thin. It exports notes and detects when Anki is absent. It does not import review history, synchronize two ways, or reconcile schedules. A reviewer looking for a serious Anki workflow will see a one-way pipe. Sync itself is idempotent: a note's identity is its content, so re-running the same sync adds zero notes (the mock keys on (front, back), the real backend uses AnkiConnect's `canAddNotes`, and the CLI filters already-accepted notes from its database).
 
 6. The SM-2 implementation is textbook. That is a feature for clarity, but a reviewer comparing it to Anki's tuned scheduler (fuzz factors, graduating/easy intervals, per-deck options) will find it basic.
 

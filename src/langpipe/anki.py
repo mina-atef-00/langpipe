@@ -39,6 +39,9 @@ class SyncResult:
     deck: str
     notes_added: int
     note_ids: list[int]
+    # accepted[i] is True iff the backend accepted notes[i]; False entries are
+    # duplicates the backend skipped. Same length as the submitted notes list.
+    accepted: list[bool] = field(default_factory=list)
     error: str | None = None
 
 
@@ -64,17 +67,28 @@ class MockAnkiBackend:
 
     def sync(self, notes: list[SyncNote], deck: str) -> SyncResult:
         stored = self.decks.setdefault(deck, [])
+        # Duplicate detection keyed on note content: a re-sync with the same
+        # front/back skips notes that are already present, so syncing is
+        # idempotent.
+        seen = {(n.front, n.back) for n in stored}
         ids: list[int] = []
+        accepted: list[bool] = []
         for note in notes:
+            if (note.front, note.back) in seen:
+                accepted.append(False)
+                continue
+            seen.add((note.front, note.back))
             stored.append(note)
             ids.append(self._next_id)
             self._next_id += 1
+            accepted.append(True)
         return SyncResult(
             backend=self.name,
             reachable=True,
             deck=deck,
-            notes_added=len(notes),
+            notes_added=len(ids),
             note_ids=ids,
+            accepted=accepted,
         )
 
 
@@ -120,18 +134,32 @@ class AnkiConnectBackend:
             )
         try:
             self._request("createDeck", deck=deck)
-            raw = self._request(
-                "addNotes",
+            # Ask AnkiConnect which notes would be duplicates of what is
+            # already in the deck, and only add the rest. This makes a
+            # re-sync idempotent: notes already present are skipped.
+            can_add = self._request(
+                "canAddNotes",
                 notes=[
                     {
                         "deckName": deck,
                         "modelName": ANKI_MODEL,
                         "fields": {"Front": n.front, "Back": n.back},
-                        "tags": n.tags,
                     }
                     for n in notes
                 ],
             )
+            fresh = [n for n, ok in zip(notes, can_add or [], strict=False) if ok]
+            accepted = [bool(ok) for ok in (can_add or [])][:len(notes)]
+            payload = [
+                {
+                    "deckName": deck,
+                    "modelName": ANKI_MODEL,
+                    "fields": {"Front": n.front, "Back": n.back},
+                    "tags": n.tags,
+                }
+                for n in fresh
+            ]
+            raw = self._request("addNotes", notes=payload) if payload else []
         except RuntimeError as exc:
             return SyncResult(
                 backend=self.name,
@@ -148,4 +176,5 @@ class AnkiConnectBackend:
             deck=deck,
             notes_added=len(ids),
             note_ids=ids,
+            accepted=accepted,
         )

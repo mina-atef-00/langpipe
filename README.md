@@ -112,11 +112,13 @@ Per-stage progress
 ```
 $ langpipe sync --mock --stage 1
 Sync to backend 'mock' (deck 'langpipe'):
-  57 notes added.
-  note ids: [1, 2, 3, ... 57]
+  56 notes added.
+  note ids: [1, 2, 3, 4, ... 56]
 ```
 
 With a real Anki running the AnkiConnect add-on, drop `--mock`. If the server is not reachable, the command reports the failure and exits with a non-zero code instead of pretending.
+
+Sync is idempotent in both backends. A note's identity is its content: the mock backend keys duplicates on (front, back), the real AnkiConnect client asks Anki which notes are duplicates via `canAddNotes` and only submits the rest, and the CLI also records which notes were already accepted in the database, filtering them out before the round-trip. Running the same sync command twice adds all the notes the first time and zero the second; the duplicate key is the note content only, so two cards differing in template or tags but sharing the same front and back count as one note — the same note Anki itself would refuse to duplicate.
 
 ## Language packs
 

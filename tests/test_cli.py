@@ -64,7 +64,15 @@ def test_sync_mock(tmp_path: Path) -> None:
     runner.invoke(app, ["generate", "--db", str(db), "--stage", "1", "--seed", "42"])
     result = runner.invoke(app, ["sync", "--db", str(db), "--mock", "--stage", "1"])
     assert result.exit_code == 0
-    assert "57 notes added" in result.output
+    # 57 cards exist but two share the same front/back ("no" from two
+    # templates); content-keyed duplicate detection collapses them to 56,
+    # matching what real Anki would store.
+    assert "56 notes added" in result.output
+
+    # Re-sync must be idempotent: the same cards already exist, so zero notes.
+    resync = runner.invoke(app, ["sync", "--db", str(db), "--mock", "--stage", "1"])
+    assert resync.exit_code == 0
+    assert "0 notes added" in resync.output
 
 
 def test_sync_unreachable_exits_nonzero(tmp_path: Path) -> None:
