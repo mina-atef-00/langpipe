@@ -4,6 +4,7 @@ langpipe is a command-line tool that turns a list of words and grammar points in
 
 ![python](https://img.shields.io/badge/python-3.11%2B-89b4fa?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-a6e3a1?style=flat-square)
+[![CI](https://github.com/mina-atef-00/langpipe/actions/workflows/ci.yml/badge.svg)](https://github.com/mina-atef-00/langpipe/actions/workflows/ci.yml)
 ![langpipe](https://img.shields.io/badge/langpipe-v0.1-cba6f7?style=flat-square)
 
 ## Sixty seconds
