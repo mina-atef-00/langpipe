@@ -29,6 +29,11 @@ Install from the local plugin directory:
 cp -r ~/.hermes/plugins/langpipe ~/.hermes/skills/langpipe
 ```
 
+The skill is a prompt file, not code: it is not part of this repository (it
+lives in the Hermes plugin directory, `~/.hermes/plugins/langpipe/SKILL.md`),
+and it adds no model inference to the pipeline. Everything it does, it does by
+calling the CLI documented below.
+
 See SPEC.md for the technical detail on how the skill and the CLI divide the
 work.
 
@@ -96,6 +101,11 @@ Want the internal details — how the scheduling math works, what is stored wher
 ## Status
 
 New tool, early days. The pipeline runs end to end and the test suite is green, but treat it as a project to poke at, not polished software.
+
+What "green" means concretely, so it can be checked rather than believed:
+`pytest` runs 56 tests, `ruff check .` is clean, and `mypy` in strict mode
+reports no issues; CI (`.github/workflows/ci.yml`) runs those same three on
+Python 3.11 for every push.
 
 ## License
 

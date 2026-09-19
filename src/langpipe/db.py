@@ -390,6 +390,13 @@ class Database:
         row = self._conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
         return None if row is None else row["value"]
 
+    def meta_entries(self) -> list[tuple[str, str]]:
+        """Every (key, value) in the meta table. The table is tiny and this
+        avoids LIKE/GLOB escaping games on keys that embed user-supplied deck
+        names."""
+        rows = self._conn.execute("SELECT key, value FROM meta ORDER BY key").fetchall()
+        return [(r["key"], r["value"]) for r in rows]
+
     # -- analytics helpers -------------------------------------------------
 
     def vocab_reviewed_by_stage(self) -> dict[int, int]:

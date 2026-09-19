@@ -98,3 +98,14 @@ def test_init_missing_pack_fails(tmp_path: Path) -> None:
     )
     assert result.exit_code == 1
     assert "Language pack not found" in result.output
+
+
+def test_review_out_of_range_grade_fails_cleanly(tmp_path: Path) -> None:
+    """An out-of-range grade must be a one-line error, not a ValueError
+    traceback from the scheduler."""
+    db = _init(tmp_path, "grade")
+    runner.invoke(app, ["generate", "--db", str(db), "--stage", "1", "--seed", "42"])
+    result = runner.invoke(app, ["review", "1", "--grade", "9", "--db", str(db)])
+    assert result.exit_code == 1
+    assert "Grade must be between 0 and 5" in result.output
+    assert "Traceback" not in result.output

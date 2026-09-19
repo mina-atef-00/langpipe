@@ -36,6 +36,11 @@ class FakeAnkiConnect:
         self.notes: list[dict] = []  # accepted notes
         self.fail_next_version = False
         self.corrupt_next_response = False
+        # Simulate Anki clearing the pre-flight (canAddNotes -> true) and then
+        # refusing every note at write time (addNotes -> null): a bad model, a
+        # duplicate in another deck, a read-only collection.
+        self.refuse_adds = False
+        self.add_attempts = 0  # notes submitted to addNotes across all calls
 
     # -- request dispatch -------------------------------------------------
     def handle(self, action: str, params: dict) -> dict:
@@ -63,6 +68,10 @@ class FakeAnkiConnect:
                 can.append(not dup and not reject)
             return {"error": None, "result": can}
         if action == "addNotes":
+            self.add_attempts += len(params["notes"])
+            if self.refuse_adds:
+                # AnkiConnect answers null per note it refuses; nothing lands.
+                return {"error": None, "result": [None for _ in params["notes"]]}
             accepted = []
             for _i, note in enumerate(params["notes"]):
                 self.fail_count = max(0, self.fail_count)
@@ -186,6 +195,27 @@ def test_ankiconnect_malformed_json_counts_as_unreachable(fake_server) -> None:
     assert backend.is_available() is False
 
 
+def test_ankiconnect_refused_adds_are_not_reported_as_accepted(fake_server) -> None:
+    """AnkiConnect clearing canAddNotes then returning null from addNotes must
+    surface as a refusal, not as a successful sync.
+
+    Regression: `accepted` used to be copied from the canAddNotes pre-flight,
+    so a note Anki refused at write time was still recorded as synced by the
+    CLI's ledger and never retried.
+    """
+    fake, url = fake_server
+    fake.refuse_adds = True
+    backend = AnkiConnectBackend(url=url, timeout=2.0)
+    result = backend.sync([SyncNote("a", "b"), SyncNote("c", "d")], "langpipe")
+    assert result.reachable is True
+    assert result.notes_added == 0
+    assert result.note_ids == []
+    assert result.accepted == [False, False]
+    assert result.notes_refused == 2
+    assert "refused" in (result.error or "")
+    assert fake.notes == []  # nothing landed server-side
+
+
 # ---------------------------------------------------------------------------
 # End-to-end CLI sync against the fake server.
 #
@@ -239,6 +269,65 @@ def test_cli_sync_end_to_end_against_fake_is_idempotent(tmp_path, fake_server) -
     # The fake server must confirm the same thing from its side.
     total_notes_server_side = len(fake.notes)
     assert total_notes_server_side == added_first
+
+
+def test_cli_sync_refused_notes_are_retried_and_reported(tmp_path, fake_server) -> None:
+    """A partial sync must exit non-zero and leave the refused notes unsynced
+    so the next run retries them, instead of silently recording success."""
+    fake, url = fake_server
+    fake.refuse_adds = True
+    workdir = tmp_path
+    common = [
+        "--db",
+        str(workdir / "lp.db"),
+        "--pack",
+        str(REPO_ROOT / "src/langpipe/packs/demo-spanish.json"),
+    ]
+    rc, _out, err = _run_cli(workdir, "init", "--name", "Harness", "--lang", "es", *common)
+    assert rc == 0, err
+    rc, _out, err = _run_cli(workdir, "generate", "--stage", "1", *common)
+    assert rc == 0, err
+
+    url_args = ["--url", url, "--deck", "langpipe", "--db", str(workdir / "lp.db")]
+    rc, out, err = _run_cli(workdir, "sync", *url_args)
+    assert rc != 0, out
+    assert "refused" in (err + out)
+    first_attempts = fake.add_attempts
+    assert first_attempts > 0
+
+    # Nothing was written, so nothing may be recorded as synced: the next run
+    # must offer the same notes again.
+    rc, out, err = _run_cli(workdir, "sync", *url_args)
+    assert rc != 0, out
+    assert fake.add_attempts > first_attempts, "refused notes were not retried"
+    assert len(fake.notes) == 0
+
+
+def test_cli_sync_ledger_is_not_stage_scoped(tmp_path) -> None:
+    """Syncing one stage must not make a later unfiltered sync re-add the same
+    notes: note identity is per deck, the stage in the ledger key is only
+    bookkeeping for what a given run exported."""
+    workdir = tmp_path
+    common = [
+        "--db",
+        str(workdir / "lp.db"),
+        "--pack",
+        str(REPO_ROOT / "src/langpipe/packs/demo-spanish.json"),
+    ]
+    rc, _out, err = _run_cli(workdir, "init", "--name", "Harness", "--lang", "es", *common)
+    assert rc == 0, err
+    rc, _out, err = _run_cli(workdir, "generate", "--stage", "1", *common)
+    assert rc == 0, err
+
+    lp_db = str(workdir / "lp.db")
+    rc, out, err = _run_cli(workdir, "sync", "--mock", "--stage", "1", "--db", lp_db)
+    assert rc == 0, err
+    assert "56 notes added" in out
+
+    # Same cards, no stage filter -> a different ledger key, but the same notes.
+    rc, out, err = _run_cli(workdir, "sync", "--mock", "--db", lp_db)
+    assert rc == 0, err
+    assert "0 notes added" in out, out
 
 
 def test_cli_sync_unreachable_exits_nonzero(tmp_path) -> None:

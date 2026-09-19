@@ -239,6 +239,10 @@ def review(
     db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path."),
 ) -> None:
     """Record a review of one card and reschedule it."""
+    if not 0 <= grade <= 5:
+        typer.echo(f"Grade must be between 0 and 5, got {grade}.", err=True)
+        raise typer.Exit(code=1)
+
     database = _open_db(db)
     _require_learner(database)
     card = database.get_card(card_id)
@@ -294,10 +298,24 @@ def sync(
     def note_key(front: str, back: str) -> str:
         return hashlib.sha256(f"{front}\x1f{back}".encode()).hexdigest()
 
+    def ledger(database: Database, deck_name: str) -> set[str]:
+        """Content keys already synced to this deck.
+
+        Read from *every* `synced_notes:<deck>:*` record, not just the one for
+        the stage filter used on this run. The stage component is bookkeeping
+        (what a given run exported); note identity is per deck, so filtering on
+        a single stage key would re-send, and on the mock backend re-add, notes
+        that a different stage filter had already pushed.
+        """
+        prefix = f"synced_notes:{deck_name}:"
+        keys: set[str] = set()
+        for key, value in database.meta_entries():
+            if key.startswith(prefix):
+                keys.update(k for k in value.split(",") if k)
+        return keys
+
     synced_key = f"synced_notes:{deck}:{stage}"
-    already_synced = {
-        k for k in (database.get_meta(synced_key) or "").split(",") if k
-    }
+    already_synced = ledger(database, deck)
     fresh_cards = [c for c in selected if note_key(c.prompt, c.answer) not in already_synced]
     notes = [
         SyncNote(front=c.prompt, back=c.answer, tags=[c.template, f"stage-{c.stage}"])
@@ -320,11 +338,10 @@ def sync(
         raise typer.Exit(code=1)
 
     # Record the content-keyed note-identity of the notes the backend just
-    # accepted, so a later re-sync skips them and stays idempotent.
-    synced_key = f"synced_notes:{deck}:{stage}"
-    previously_synced = {
-        k for k in (database.get_meta(synced_key) or "").split(",") if k
-    }
+    # accepted, so a later re-sync skips them and stays idempotent. Only notes
+    # the backend actually wrote are recorded: a note it refused is left out of
+    # the ledger so the next run retries it.
+    previously_synced = ledger(database, deck)
     accepted_hashes = [
         note_key(c.prompt, c.answer)
         for c, ok in zip(fresh_cards, result.accepted, strict=False)
@@ -338,6 +355,15 @@ def sync(
     typer.echo(f"Sync to backend '{result.backend}' (deck '{deck}'):")
     typer.echo(f"  {result.notes_added} notes added.")
     typer.echo(f"  note ids: {result.note_ids}")
+    if result.notes_refused:
+        typer.echo(
+            f"Sync incomplete: {result.error}. "
+            f"{result.notes_refused} note(s) were refused by Anki and are NOT recorded "
+            "as synced; re-run sync to retry them.",
+            err=True,
+        )
+        database.close()
+        raise typer.Exit(code=1)
     database.close()
 
 

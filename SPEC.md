@@ -78,6 +78,8 @@ A language pack is a JSON file with `meta`, `vocabulary`, and `grammar` sections
 
 `generate --stage N --seed S` emits, per vocabulary item: a recognition card (L1 -> L2), a production card (L2 -> L1), and a reading card when the item carries an example sentence. Each grammar example becomes a grammar card. New cards are created due immediately (`due = utcnow()`).
 
+Naming caveat, stated plainly because it reads backwards at first glance: `l1` is the language the learner already has and `l2` is the target, so in the bundled demo pack `l1` is English and `l2` is Spanish. The template names are relative to `l1`: `recognition` (L1 -> L2) shows English and expects Spanish, `production` (L2 -> L1) shows Spanish and expects English. Both directions are generated for every item, so no material is lost; only the labels are ordered by `l1` rather than by the target language. A pack authored with the target language in `l1` flips the two labels, which is why they are not a stable contract.
+
 `meta` fields: `language_code`, `language_name`, `script`, `tokenizer`, `rtl`, `note`. A Chinese pack sets `script: han`, `tokenizer: char`; an Arabic pack sets `script: arab`, `tokenizer: word`, `rtl: true`. Configuration is carried to the `Language` record and shown by `init`; it does not change generation or scheduling.
 
 ## CLI reference
@@ -114,7 +116,9 @@ All figures are derived from the actual `review_events` log and current card sch
 - `MockAnkiBackend` — an in-memory fake for tests and demonstration. Reports reachable, dedupes on `(front, back)`, returns assigned note ids.
 - `AnkiConnectBackend` — a real HTTP client for Anki's AnkiConnect add-on (default `http://127.0.0.1:8765`). On unreachable server, `SyncResult.reachable = False` with an error, and the CLI reports the failure and exits non-zero loudly.
 
-Idempotency across runs: sync is idempotent since the content-key dedupe fix. A note's identity is the SHA-256 hash of `"front\x1fback"`. The CLI keeps the set of already-synced identities per `(deck, stage)` in the database (`synced_notes:<deck>:<stage>` meta), filters out cards whose content key is already there before the round-trip, sends only the rest, and records the content keys the backend accepted. The real AnkiConnect client additionally asks Anki which notes are duplicates via `canAddNotes` and submits only the ones that can be added.
+`SyncResult.accepted[i]` reflects what the backend actually did with the `i`th submitted note: `True` only if that note was written. For `AnkiConnectBackend` this is derived from the per-note result of `addNotes` (an id, or `null` when Anki refuses the note), *not* from the `canAddNotes` pre-flight — the pre-flight is only a prediction. A refused note is counted in `SyncResult.notes_refused`, surfaced in `SyncResult.error`, and makes the CLI exit non-zero rather than report a successful sync.
+
+Idempotency across runs: a note's identity is the SHA-256 hash of `"front\x1fback"`. The CLI keeps the set of already-synced identities per `(deck, stage)` in the database (`synced_notes:<deck>:<stage>` meta) as bookkeeping for what a given run exported, but **reads the union of every `synced_notes:<deck>:*` record** when filtering, because note identity is a property of the deck, not of the stage filter that happened to be used. Cards whose content key is already in that set are dropped before the round-trip, only the rest are sent, and only the notes the backend actually wrote are recorded. The real AnkiConnect client additionally asks Anki which notes are duplicates via `canAddNotes` and submits only the ones that can be added.
 
 Running the same sync twice adds all notes the first time and zero the second. The duplicate key is note content only: two cards differing in template or tags but sharing the same front and back count as one note — the same note Anki itself would refuse to duplicate.
 

@@ -43,6 +43,11 @@ class SyncResult:
     # duplicates the backend skipped. Same length as the submitted notes list.
     accepted: list[bool] = field(default_factory=list)
     error: str | None = None
+    # notes the backend was willing to take but then refused at write time.
+    # Non-zero means the sync was partial: the caller must not record those
+    # notes as synced, and should report the failure instead of claiming
+    # success.
+    notes_refused: int = 0
 
 
 class AnkiBackend(Protocol):
@@ -135,7 +140,7 @@ class AnkiConnectBackend:
         try:
             self._request("createDeck", deck=deck)
             # Ask AnkiConnect which notes would be duplicates of what is
-            # already in the deck, and only add the rest. This makes a
+            # already in the deck, and only submit the rest. This makes a
             # re-sync idempotent: notes already present are skipped.
             can_add = self._request(
                 "canAddNotes",
@@ -148,8 +153,11 @@ class AnkiConnectBackend:
                     for n in notes
                 ],
             )
-            fresh = [n for n, ok in zip(notes, can_add or [], strict=False) if ok]
-            accepted = [bool(ok) for ok in (can_add or [])][:len(notes)]
+            preflight = [bool(ok) for ok in (can_add or [])][: len(notes)]
+            # (index into `notes`, note) for everything the pre-flight cleared.
+            fresh: list[tuple[int, SyncNote]] = [
+                (i, n) for i, n in enumerate(notes) if i < len(preflight) and preflight[i]
+            ]
             payload = [
                 {
                     "deckName": deck,
@@ -157,7 +165,7 @@ class AnkiConnectBackend:
                     "fields": {"Front": n.front, "Back": n.back},
                     "tags": n.tags,
                 }
-                for n in fresh
+                for _, n in fresh
             ]
             raw = self._request("addNotes", notes=payload) if payload else []
         except RuntimeError as exc:
@@ -169,7 +177,24 @@ class AnkiConnectBackend:
                 note_ids=[],
                 error=str(exc),
             )
-        ids = [int(x) for x in raw if x is not None]
+        # addNotes answers per submitted note with an id, or null when Anki
+        # refused that note (bad model, duplicate across decks, read-only
+        # collection, ...). `accepted` must reflect that outcome, not the
+        # canAddNotes prediction: a note Anki refused was NOT synced, and
+        # recording it as synced would lose it forever, silently.
+        written = list(raw) if isinstance(raw, list) else []
+        accepted = [False] * len(notes)
+        refused = 0
+        for position, (index, _note) in enumerate(fresh):
+            note_id = written[position] if position < len(written) else None
+            if note_id is None:
+                refused += 1
+                continue
+            accepted[index] = True
+        ids = [int(x) for x in written if x is not None]
+        error = None
+        if refused:
+            error = f"Anki refused {refused} of {len(fresh)} submitted notes"
         return SyncResult(
             backend=self.name,
             reachable=True,
@@ -177,4 +202,6 @@ class AnkiConnectBackend:
             notes_added=len(ids),
             note_ids=ids,
             accepted=accepted,
+            error=error,
+            notes_refused=refused,
         )
