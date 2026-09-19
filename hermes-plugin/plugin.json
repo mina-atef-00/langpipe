@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "langpipe",
+  "version": "0.1.0",
+  "description": "Grounded language learning: a guided learner interview, a deterministic curriculum and SM-2 scheduler, and honest retention analytics driven through the langpipe CLI.",
+  "author": {
+    "name": "mina-atef-00",
+    "url": "https://github.com/mina-atef-00"
+  },
+  "homepage": "https://github.com/mina-atef-00/langpipe",
+  "repository": "https://github.com/mina-atef-00/langpipe",
+  "license": "MIT",
+  "keywords": [
+    "language-learning",
+    "spaced-repetition",
+    "srs",
+    "anki",
+    "curriculum",
+    "flashcards",
+    "mcp"
+  ]
+}
