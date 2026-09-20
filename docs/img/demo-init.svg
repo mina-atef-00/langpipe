@@ -10,6 +10,6 @@
 }
 </style><rect width="685.00" height="134.00" fill="#1e1e2e" x="0.00px" y="0.00px"/>
 <g font-family="JetBrains Mono" font-size="14.00px" fill="#cdd6f4" clip-path="url(#terminalMask)">
-<text x="20.00px" y="36.80px" xml:space="preserve"><tspan xml:space="preserve">Initialised learner &apos;Mina&apos; learning Spanish (es).</tspan></text><text x="20.00px" y="53.60px" xml:space="preserve"><tspan xml:space="preserve">Loaded pack &apos;demo-spanish&apos;: 56 vocabulary items, 8 grammar points.</tspan></text><text x="20.00px" y="70.40px" xml:space="preserve"><tspan xml:space="preserve">Script: latin, tokenizer: word, rtl: False</tspan></text><text x="20.00px" y="87.20px" xml:space="preserve"><tspan xml:space="preserve">Seed: 42. Next: `langpipe plan` to see the plan, then `langpipe generate`.</tspan></text>
+<text x="20.00px" y="36.80px" xml:space="preserve"><tspan xml:space="preserve">Initialised learner &apos;Mina&apos; learning Spanish (es).</tspan></text><text x="20.00px" y="53.60px" xml:space="preserve"><tspan xml:space="preserve">Loaded pack &apos;demo-spanish&apos;: 56 vocabulary items, 8 grammar points.</tspan></text><text x="20.00px" y="70.40px" xml:space="preserve"><tspan xml:space="preserve">Script: latin, tokenizer: word, rtl: False</tspan></text><text x="20.00px" y="87.20px" xml:space="preserve"><tspan xml:space="preserve">Seed: 42. Next: `lesan_pipe plan` to see the plan, then `lesan_pipe generate`.</tspan></text>
 </g>
 </svg>

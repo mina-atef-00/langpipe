@@ -6,6 +6,15 @@ on:
   pull_request:
 
 jobs:
+  plugin-packaging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate plugin packaging
+        run: python3 .github/scripts/check_plugin_packaging.py
   quality:
     runs-on: ubuntu-latest
     steps:

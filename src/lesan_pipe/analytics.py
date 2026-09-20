@@ -16,9 +16,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from langpipe.curriculum import StageProgress, progress_for_stage
-from langpipe.db import Database
-from langpipe.models import utcnow
+from lesan_pipe.curriculum import StageProgress, progress_for_stage
+from lesan_pipe.db import Database
+from lesan_pipe.models import utcnow
 
 PASS_THRESHOLD = 3
 

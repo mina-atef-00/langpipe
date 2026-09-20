@@ -1,4 +1,4 @@
-"""Shared fixtures for the langpipe test suite."""
+"""Shared fixtures for the lesan_pipe test suite."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from datetime import datetime
 
 import pytest
 
-from langpipe.db import Database
-from langpipe.models import Card, utcnow
+from lesan_pipe.db import Database
+from lesan_pipe.models import Card, utcnow
 
 
 @pytest.fixture

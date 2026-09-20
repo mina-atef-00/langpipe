@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""MCP stdio server for langpipe.
+"""MCP stdio server for lesan_pipe.
 
 Speaks newline-delimited JSON-RPC 2.0 over stdin/stdout (the MCP stdio
-transport) and forwards every tool call to the real ``langpipe`` console
+transport) and forwards every tool call to the real ``lesan_pipe`` console
 script as a subprocess. Standard library only: no SDK, no third-party
 dependency, so the server starts even in the interpreter the plugin is
 handed.
@@ -13,7 +13,7 @@ Two rules this file will not break:
   retention rate or a due forecast; the server formats output it did not
   derive.
 * Failures are loud. A non-zero exit, an unreachable AnkiConnect, or a
-  missing langpipe executable comes back as an MCP tool error carrying the
+  missing lesan_pipe executable comes back as an MCP tool error carrying the
   real stderr, so a failure can never be read as a cheerful empty result.
 """
 
@@ -26,13 +26,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-SERVER_NAME = "langpipe"
+SERVER_NAME = "lesan_pipe"
 SERVER_VERSION = "0.1.0"
 DEFAULT_PROTOCOL_VERSION = "2025-06-18"
 SUPPORTED_PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18")
 DEFAULT_TIMEOUT_SECONDS = 120.0
 SYNC_TIMEOUT_SECONDS = 300.0
-INPROCESS_RUNNER = "from langpipe.cli import app; app()"
+INPROCESS_RUNNER = "from lesan_pipe.cli import app; app()"
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 
 PARSE_ERROR = -32700
@@ -66,24 +66,24 @@ def _plugin_data() -> Path:
 
 def _default_db() -> str:
     """Database path used when a call omits ``db``: overridable, never guessed per call."""
-    override = os.environ.get("LANGPIPE_DB")
-    return override if override else str(_plugin_data() / "langpipe.db")
+    override = os.environ.get("LESAN_PIPE_DB")
+    return override if override else str(_plugin_data() / "lesan_pipe.db")
 
 
-# ── Locating the langpipe CLI ────────────────────────────────────────────────
+# ── Locating the lesan_pipe CLI ────────────────────────────────────────────────
 
 
 def _console_script_candidates() -> list:
     candidates = []
-    override = os.environ.get("LANGPIPE_BIN")
+    override = os.environ.get("LESAN_PIPE_BIN")
     if override:
         candidates.append(Path(override).expanduser())
-    on_path = shutil.which("langpipe")
+    on_path = shutil.which("lesan_pipe")
     if on_path:
         candidates.append(Path(on_path))
     root = _plugin_root()
-    candidates.append(root.parent / ".venv" / "bin" / "langpipe")
-    candidates.append(root / ".venv" / "bin" / "langpipe")
+    candidates.append(root.parent / ".venv" / "bin" / "lesan_pipe")
+    candidates.append(root / ".venv" / "bin" / "lesan_pipe")
     return candidates
 
 
@@ -102,10 +102,10 @@ def _python_candidates() -> list:
     return candidates
 
 
-def _imports_langpipe(python: str) -> bool:
+def _imports_lesan_pipe(python: str) -> bool:
     try:
         completed = subprocess.run(
-            [python, "-c", "import langpipe.cli"],
+            [python, "-c", "import lesan_pipe.cli"],
             capture_output=True, text=True, timeout=30,
         )
     except (OSError, subprocess.SubprocessError):
@@ -118,9 +118,9 @@ _CLI_FAILURE = None
 
 
 def _resolve_cli() -> list:
-    """Return the argv prefix that runs langpipe, resolved once and cached.
+    """Return the argv prefix that runs lesan_pipe, resolved once and cached.
 
-    Order: ``LANGPIPE_BIN``, ``langpipe`` on PATH, the repository virtualenv
+    Order: ``LESAN_PIPE_BIN``, ``lesan_pipe`` on PATH, the repository virtualenv
     beside this package, then any interpreter that can import the package
     (the CLI module is invoked directly in that case). Failure is cached too,
     so a missing CLI costs one probe, not one per tool call.
@@ -135,15 +135,15 @@ def _resolve_cli() -> list:
             _CLI_COMMAND = [str(candidate)]
             return list(_CLI_COMMAND)
     for python in _python_candidates():
-        if _imports_langpipe(python):
+        if _imports_lesan_pipe(python):
             _CLI_COMMAND = [python, "-c", INPROCESS_RUNNER]
             return list(_CLI_COMMAND)
     tried = ", ".join(str(path) for path in _console_script_candidates())
     _CLI_FAILURE = (
-        "langpipe executable not found, so no langpipe command can run. Tried: "
+        "lesan_pipe executable not found, so no lesan_pipe command can run. Tried: "
         f"{tried}; then the interpreters {', '.join(_python_candidates())} for an importable "
-        "langpipe package. Install the CLI (for example `pipx install langpipe`), activate the "
-        "repository virtualenv, or set LANGPIPE_BIN to the langpipe console script."
+        "lesan_pipe package. Install the CLI (for example `pipx install lesan_pipe`), activate the "
+        "repository virtualenv, or set LESAN_PIPE_BIN to the lesan_pipe console script."
     )
     raise ToolError(_CLI_FAILURE)
 
@@ -154,7 +154,7 @@ def _resolve_cli() -> list:
 def _timeout(seconds: float | None = None) -> float:
     if seconds is not None:
         return seconds
-    configured = os.environ.get("LANGPIPE_TIMEOUT")
+    configured = os.environ.get("LESAN_PIPE_TIMEOUT")
     if configured:
         try:
             return max(1.0, float(configured))
@@ -164,30 +164,33 @@ def _timeout(seconds: float | None = None) -> float:
 
 
 def _run(argv: list, timeout: float | None = None) -> tuple:
-    """Run langpipe with *argv*; return ``(stdout, stderr)``. Any failure raises ToolError."""
+    """Run lesan_pipe with *argv*; return ``(stdout, stderr)``. Any failure raises ToolError."""
     command = _resolve_cli() + [str(part) for part in argv]
     limit = _timeout(timeout)
     try:
         completed = subprocess.run(command, capture_output=True, text=True, timeout=limit)
     except subprocess.TimeoutExpired:
         raise ToolError(
-            f"langpipe {' '.join(str(p) for p in argv)} timed out after {limit:.0f}s and was "
-            "killed. Raise LANGPIPE_TIMEOUT if the operation legitimately needs longer."
+            f"lesan_pipe {' '.join(str(p) for p in argv)} timed out after {limit:.0f}s and was "
+            "killed. Raise LESAN_PIPE_TIMEOUT if the operation legitimately needs longer."
         ) from None
     except OSError as exc:
         raise ToolError(
-            f"could not start langpipe ({command[0]}): {exc}. Set LANGPIPE_BIN to a working "
-            "langpipe console script."
+            f"could not start lesan_pipe ({command[0]}): {exc}. Set LESAN_PIPE_BIN to a working "
+            "lesan_pipe console script."
         ) from exc
     stdout = completed.stdout.strip()
     stderr = completed.stderr.strip()
     if completed.returncode != 0:
         details = "\n".join(part for part in (stdout, stderr) if part)
         raise ToolError(
-            f"langpipe {' '.join(str(p) for p in argv)} exited {completed.returncode}."
+            f"lesan_pipe {' '.join(str(p) for p in argv)} exited {completed.returncode}."
             + (f"\n{details}" if details else "\n(no output on stdout or stderr)")
         )
-    return stdout or f"(langpipe exited 0 with no output: {' '.join(str(p) for p in argv)})", stderr
+    if stdout:
+        return stdout, stderr
+    empty = f"(lesan_pipe exited 0 with no output: {' '.join(str(p) for p in argv)})"
+    return empty, stderr
 
 
 def _flag(argv: list, name: str, value) -> None:
@@ -214,11 +217,13 @@ def _tool_init(args: dict) -> tuple:
     confirm = bool(args.get("confirm_overwrite"))
     if Path(db).exists() and not confirm:
         raise ToolError(
-            f"a langpipe database already exists at {db}, and `langpipe init` deletes it before "
-            "creating the learner. Nothing was run. Call langpipe_init again with "
+            f"a lesan_pipe database already exists at {db}, and `lesan_pipe init` deletes it. "
+            "Nothing was run. Call lesan_pipe_init again with "
             "confirm_overwrite=true to accept the loss, or pass a different db path."
         )
     argv = ["init", "--db", db]
+    if confirm:
+        argv.append("--force")
     for option in ("name", "lang", "pack", "seed", "daily"):
         _flag(argv, f"--{option}", args.get(option))
     return _run(argv)
@@ -265,7 +270,7 @@ def _db_property() -> dict:
     return {
         "type": "string",
         "description": (
-            "SQLite database path. Defaults to langpipe.db inside the plugin data directory "
+            "SQLite database path. Defaults to lesan_pipe.db inside the plugin data directory "
             f"({_plugin_data()}); override it per call for another learner or profile."
         ),
     }
@@ -273,34 +278,46 @@ def _db_property() -> dict:
 
 TOOLS = (
     {
-        "name": "langpipe_init",
+        "name": "lesan_pipe_init",
         "description": (
-            "Create a fresh learner, curriculum and database from a language pack. Destructive: "
-            "an existing database at the same path is deleted first, so pass confirm_overwrite=true "
-            "only after the learner agreed to lose the old one."
+            "Create a fresh learner, curriculum and database from a language pack. "
+            "Destructive: an existing database at the same path is deleted first, "
+            "so pass confirm_overwrite=true only after the learner agreed to lose it."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "name": {"type": "string", "description": "Learner name."},
-                "lang": {"type": "string", "description": "Target language code (ISO 639-1), e.g. 'es'."},
-                "pack": {"type": "string", "description": "Path to a language pack JSON file. Omit to use the bundled demo pack."},
+                "lang": {
+                    "type": "string",
+                    "description": "Target language code (ISO 639-1), e.g. 'es'.",
+                },
+                "pack": {
+                    "type": "string",
+                    "description": (
+                        "Path to a language pack JSON file. "
+                        "Omit to use the bundled demo pack."
+                    ),
+                },
                 "seed": {"type": "integer", "description": "Seed for deterministic generation."},
                 "daily": {"type": "integer", "description": "New cards per day target."},
-                "confirm_overwrite": {"type": "boolean", "description": "Must be true to replace an existing database at db."},
+                "confirm_overwrite": {
+                    "type": "boolean",
+                    "description": "Must be true to replace an existing database at db.",
+                },
                 "db": _db_property(),
             },
         },
         "handler": _tool_init,
     },
     {
-        "name": "langpipe_plan",
+        "name": "lesan_pipe_plan",
         "description": "Print the phased curriculum with per-stage vocabulary and grammar targets.",
         "inputSchema": {"type": "object", "properties": {"db": _db_property()}},
         "handler": _tool_plan,
     },
     {
-        "name": "langpipe_generate",
+        "name": "lesan_pipe_generate",
         "description": "Generate practice cards for one curriculum stage from the language pack.",
         "inputSchema": {
             "type": "object",
@@ -315,7 +332,7 @@ TOOLS = (
         "handler": _tool_generate,
     },
     {
-        "name": "langpipe_cards",
+        "name": "lesan_pipe_cards",
         "description": "List cards stored in the database, optionally filtered by stage.",
         "inputSchema": {
             "type": "object",
@@ -327,7 +344,7 @@ TOOLS = (
         "handler": _tool_cards,
     },
     {
-        "name": "langpipe_review",
+        "name": "lesan_pipe_review",
         "description": (
             "Record one review of a card and reschedule it with SM-2. The CLI owns the interval "
             "and ease arithmetic; the tool only reports what it printed."
@@ -336,7 +353,10 @@ TOOLS = (
             "type": "object",
             "properties": {
                 "card_id": {"type": "integer", "description": "Card ID to review."},
-                "grade": {"type": "integer", "description": "Recall grade 0-5 (0 blackout, 5 perfect)."},
+                "grade": {
+                    "type": "integer",
+                    "description": "Recall grade 0-5 (0 blackout, 5 perfect).",
+                },
                 "db": _db_property(),
             },
             "required": ["card_id", "grade"],
@@ -344,7 +364,7 @@ TOOLS = (
         "handler": _tool_review,
     },
     {
-        "name": "langpipe_stats",
+        "name": "lesan_pipe_stats",
         "description": (
             "Print the analytics report (retention, lapses, due forecast), all derived from the "
             "review-event log by the CLI."
@@ -353,7 +373,7 @@ TOOLS = (
         "handler": _tool_stats,
     },
     {
-        "name": "langpipe_sync",
+        "name": "lesan_pipe_sync",
         "description": (
             "Export cards to Anki through AnkiConnect. Requires Anki running with the AnkiConnect "
             "add-on; an unreachable endpoint is reported as a tool error, never as a silent "
@@ -362,10 +382,13 @@ TOOLS = (
         "inputSchema": {
             "type": "object",
             "properties": {
-                "deck": {"type": "string", "description": "Anki deck name (default 'langpipe')."},
+                "deck": {"type": "string", "description": "Anki deck name (default 'lesan_pipe')."},
                 "stage": {"type": "integer", "description": "Only export this stage (0 = all)."},
                 "url": {"type": "string", "description": "AnkiConnect base URL (default http://127.0.0.1:8765)."},
-                "mock": {"type": "boolean", "description": "Use the in-memory mock backend instead of Anki."},
+                "mock": {
+                    "type": "boolean",
+                    "description": "Use the in-memory mock backend instead of Anki.",
+                },
                 "db": _db_property(),
             },
         },
@@ -431,7 +454,8 @@ def _handle(message: dict):
     if method == "ping":
         return {"jsonrpc": "2.0", "id": request_id, "result": {}}
     if method == "tools/list":
-        listed = [{key: tool[key] for key in ("name", "description", "inputSchema")} for tool in TOOLS]
+        keys = ("name", "description", "inputSchema")
+        listed = [{key: tool[key] for key in keys} for tool in TOOLS]
         return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": listed}}
     if method == "tools/call":
         name = params.get("name")
@@ -447,8 +471,9 @@ def _handle(message: dict):
         except ToolError as exc:
             return {"jsonrpc": "2.0", "id": request_id, "result": _tool_text(str(exc), True)}
         except Exception as exc:  # surfaced, never swallowed: an unknown failure is still a failure
+            detail = f"lesan_pipe tool {name} raised {type(exc).__name__}: {exc}"
             return {"jsonrpc": "2.0", "id": request_id,
-                    "result": _tool_text(f"langpipe tool {name} raised {type(exc).__name__}: {exc}", True)}
+                    "result": _tool_text(detail, True)}
         text = stdout if not stderr else f"{stdout}\n\n{stderr}"
         return {"jsonrpc": "2.0", "id": request_id, "result": _tool_text(text)}
 
@@ -470,7 +495,8 @@ def main() -> int:
             continue
         if isinstance(message, list):
             _write({"jsonrpc": "2.0", "id": None,
-                    "error": {"code": INVALID_REQUEST, "message": "batch requests are not supported"}})
+                    "error": {"code": INVALID_REQUEST,
+                              "message": "batch requests are not supported"}})
             continue
         response = _handle(message)
         if response is not None:

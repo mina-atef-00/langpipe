@@ -1,22 +1,23 @@
-"""Command-line interface for langpipe.
+"""Command-line interface for lesan_pipe.
 
 Commands: init, plan, generate, cards, review, stats, sync. Run
-``langpipe --help`` for the full list and per-command help.
+``lesan_pipe --help`` for the full list and per-command help.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import typer
 
-from langpipe.analytics import compute_report, render_report
-from langpipe.anki import AnkiConnectBackend, MockAnkiBackend, SyncNote
-from langpipe.curriculum import DEFAULT_STAGES
-from langpipe.db import Database
-from langpipe.generator import generate_items, load_pack
-from langpipe.models import (
+from lesan_pipe.analytics import compute_report, render_report
+from lesan_pipe.anki import AnkiConnectBackend, MockAnkiBackend, SyncNote
+from lesan_pipe.curriculum import DEFAULT_STAGES
+from lesan_pipe.db import Database
+from lesan_pipe.generator import generate_items, load_pack
+from lesan_pipe.models import (
     Card,
     CurriculumStage,
     Deck,
@@ -25,27 +26,43 @@ from langpipe.models import (
     Note,
     utcnow,
 )
-from langpipe.scheduler import Scheduler
+from lesan_pipe.scheduler import Scheduler
 
 app = typer.Typer(
-    name="langpipe",
+    name="lesan_pipe",
     help="A language-agnostic learning pipeline: curriculum, graded practice, "
     "spaced repetition, and retention analytics.",
     no_args_is_help=True,
 )
 
 BUNDLED_PACK = Path(__file__).parent / "packs" / "demo-spanish.json"
-DEFAULT_DB = "langpipe.db"
+DEFAULT_DB = "lesan_pipe.db"
 
 
 def _open_db(db_path: str) -> Database:
     return Database(db_path)
 
 
+def _open_existing_db(db_path: str) -> Database:
+    """Open an existing database, failing without creating one.
+
+    ``Database`` creates the SQLite file on connect, so commands that
+    require a prior ``init`` must check first: a typo'd ``--db`` path
+    must error, not scatter an empty database file as a side effect.
+    """
+    if not Path(db_path).exists():
+        typer.echo(
+            f"No database found at {db_path}. Run `lesan_pipe init` first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    return Database(db_path)
+
+
 def _require_learner(db: Database) -> LearnerState:
     learner = db.get_learner()
     if learner is None:
-        typer.echo("No learner yet. Run `langpipe init` first.", err=True)
+        typer.echo("No learner yet. Run `lesan_pipe init` first.", err=True)
         raise typer.Exit(code=1)
     return learner
 
@@ -69,18 +86,36 @@ def init(
     seed: int = typer.Option(42, "--seed", help="Seed for deterministic generation."),
     daily: int = typer.Option(10, "--daily", help="New cards per day target."),
     db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path."),
+    force: bool = typer.Option(
+        False, "--force", help="Overwrite the existing database if one exists."
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit machine-readable JSON instead of human-readable text."
+    ),
 ) -> None:
-    """Create a fresh learner, curriculum, and database from a language pack."""
-    db_path = Path(db)
-    if db_path.exists():
-        db_path.unlink()
+    """Create a fresh learner, curriculum, and database from a language pack.
 
-    database = _open_db(db)
+    Refuses to delete an existing database unless --force is given. The
+    language pack is validated before any existing database is touched,
+    so a bad --pack path never destroys good data.
+    """
     try:
         pack_obj = load_pack(pack)
     except FileNotFoundError:
         typer.echo(f"Language pack not found: {pack}", err=True)
         raise typer.Exit(code=1) from None
+
+    db_path = Path(db)
+    if db_path.exists() and not force:
+        typer.echo(
+            f"Database already exists: {db}. Use --force to overwrite it.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+    if db_path.exists():
+        db_path.unlink()
+
+    database = _open_db(db)
 
     meta = pack_obj.meta
     language = Language(
@@ -147,24 +182,72 @@ def init(
 
     vocab_count = len(pack_obj.vocabulary)
     grammar_count = len(pack_obj.grammar)
+    if json_output:
+        typer.echo(
+            json.dumps(
+                {
+                    "learner": name,
+                    "language_code": language.code,
+                    "language_name": language.name,
+                    "pack": meta.get("name", "default"),
+                    "vocab_count": vocab_count,
+                    "grammar_count": grammar_count,
+                    "seed": seed,
+                    "db": db,
+                },
+                indent=2,
+            )
+        )
+        return
     typer.echo(f"Initialised learner '{name}' learning {language.name} ({language.code}).")
     typer.echo(
         f"Loaded pack '{meta.get('name', 'default')}': "
         f"{vocab_count} vocabulary items, {grammar_count} grammar points."
     )
     typer.echo(f"Script: {language.script}, tokenizer: {language.tokenizer}, rtl: {language.rtl}")
-    typer.echo(f"Seed: {seed}. Next: `langpipe plan` to see the plan, then `langpipe generate`.")
+    typer.echo(
+        f"Seed: {seed}. Next: `lesan_pipe plan` to see the plan, then `lesan_pipe generate`."
+    )
 
 
 @app.command()
-def plan(db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path.")) -> None:
-    """Print the phased curriculum with targets."""
-    database = _open_db(db)
+def plan(
+    db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path."),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit machine-readable JSON instead of human-readable text."
+    ),
+) -> None:
+    """Print the phased curriculum with targets.
+
+    Never creates the database: if no database exists yet, this fails
+    instead of leaving an empty file behind.
+    """
+    database = _open_existing_db(db)
     _require_learner(database)
     stages: list[CurriculumStage] = database.list_stages()
     if not stages:
-        typer.echo("No curriculum stages. Run `langpipe init` first.", err=True)
+        typer.echo("No curriculum stages. Run `lesan_pipe init` first.", err=True)
         raise typer.Exit(code=1)
+    if json_output:
+        typer.echo(
+            json.dumps(
+                {
+                    "stages": [
+                        {
+                            "order": s.order,
+                            "name": s.name,
+                            "target_vocab": s.target_vocab,
+                            "target_grammar": s.target_grammar,
+                            "description": s.description,
+                        }
+                        for s in stages
+                    ]
+                },
+                indent=2,
+            )
+        )
+        database.close()
+        return
     typer.echo("Curriculum plan")
     for s in stages:
         typer.echo(
@@ -181,9 +264,12 @@ def generate(
     count: int = typer.Option(0, "--count", help="Cap on cards (0 = all)."),
     pack: str = typer.Option(None, "--pack", help="Override language pack path."),
     db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path."),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit machine-readable JSON instead of human-readable text."
+    ),
 ) -> None:
     """Generate practice cards for a stage from the language pack."""
-    database = _open_db(db)
+    database = _open_existing_db(db)
     _require_learner(database)
     pack_obj = load_pack(_resolve_pack(database, pack))
     items = generate_items(pack_obj, stage, seed, count or None)
@@ -208,6 +294,28 @@ def generate(
         card.id = database.add_card(card)
         created.append(card)
 
+    if json_output:
+        typer.echo(
+            json.dumps(
+                {
+                    "stage": stage,
+                    "seed": seed,
+                    "count": len(created),
+                    "cards": [
+                        {
+                            "id": c.id,
+                            "template": c.template,
+                            "prompt": c.prompt,
+                            "answer": c.answer,
+                        }
+                        for c in created
+                    ],
+                },
+                indent=2,
+            )
+        )
+        database.close()
+        return
     typer.echo(f"Generated {len(created)} cards for stage {stage} (seed {seed}).")
     for c in created:
         typer.echo(f"  [{c.id}] {c.template:12s} {c.prompt!r} -> {c.answer!r}")
@@ -218,12 +326,40 @@ def generate(
 def cards(
     stage: int = typer.Option(0, "--stage", help="Filter by stage (0 = all)."),
     db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path."),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit machine-readable JSON instead of human-readable text."
+    ),
 ) -> None:
     """List cards in the database."""
-    database = _open_db(db)
+    database = _open_existing_db(db)
     _require_learner(database)
     all_cards = database.list_cards()
     shown = [c for c in all_cards if stage == 0 or c.stage == stage]
+    if json_output:
+        typer.echo(
+            json.dumps(
+                {
+                    "cards": [
+                        {
+                            "id": c.id,
+                            "stage": c.stage,
+                            "template": c.template,
+                            "prompt": c.prompt,
+                            "answer": c.answer,
+                            "due": c.due.isoformat(),
+                            "interval": c.interval,
+                            "ease": c.ease,
+                            "reps": c.reps,
+                            "lapses": c.lapses,
+                        }
+                        for c in shown
+                    ]
+                },
+                indent=2,
+            )
+        )
+        database.close()
+        return
     for c in shown:
         typer.echo(
             f"  [{c.id}] stage {c.stage} {c.template:12s} due {c.due.date()} "
@@ -237,13 +373,16 @@ def review(
     card_id: int = typer.Argument(..., help="Card ID to review."),
     grade: int = typer.Option(..., "--grade", help="Recall grade 0-5 (0 blackout, 5 perfect)."),
     db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path."),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit machine-readable JSON instead of human-readable text."
+    ),
 ) -> None:
     """Record a review of one card and reschedule it."""
     if not 0 <= grade <= 5:
         typer.echo(f"Grade must be between 0 and 5, got {grade}.", err=True)
         raise typer.Exit(code=1)
 
-    database = _open_db(db)
+    database = _open_existing_db(db)
     _require_learner(database)
     card = database.get_card(card_id)
     if card is None:
@@ -256,6 +395,24 @@ def review(
     database.update_card(updated)
     event_id = database.add_review(event)
 
+    if json_output:
+        typer.echo(
+            json.dumps(
+                {
+                    "card_id": card_id,
+                    "grade": grade,
+                    "review_id": event_id,
+                    "interval_before": event.interval_before,
+                    "interval_after": event.interval_after,
+                    "ease_before": event.ease_before,
+                    "ease_after": event.ease_after,
+                    "due": updated.due.isoformat(),
+                },
+                indent=2,
+            )
+        )
+        database.close()
+        return
     typer.echo(
         f"Card {card_id} graded {grade}: interval {event.interval_before}d -> "
         f"{event.interval_after}d, ease {event.ease_before:.2f} -> {event.ease_after:.2f}, "
@@ -265,29 +422,70 @@ def review(
 
 
 @app.command()
-def stats(db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path.")) -> None:
+def stats(
+    db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path."),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit machine-readable JSON instead of human-readable text."
+    ),
+) -> None:
     """Print the analytics report."""
-    database = _open_db(db)
+    database = _open_existing_db(db)
     _require_learner(database)
-    typer.echo(render_report(compute_report(database)))
+    report = compute_report(database)
+    if json_output:
+        typer.echo(
+            json.dumps(
+                {
+                    "total_reviews": report.total_reviews,
+                    "passed_reviews": report.passed_reviews,
+                    "lapsed_reviews": report.lapsed_reviews,
+                    "retention_rate": report.retention_rate,
+                    "lapse_rate": report.lapse_rate,
+                    "total_cards": report.total_cards,
+                    "backlog": report.backlog,
+                    "forecast_7d": report.forecast_7d,
+                    "forecast_30d": report.forecast_30d,
+                    "stages": [
+                        {
+                            "order": s.stage.order,
+                            "name": s.stage.name,
+                            "target_vocab": s.stage.target_vocab,
+                            "target_grammar": s.stage.target_grammar,
+                            "vocab_learned": s.vocab_learned,
+                            "grammar_learned": s.grammar_learned,
+                            "vocab_pct": s.vocab_pct,
+                            "grammar_pct": s.grammar_pct,
+                        }
+                        for s in report.stages
+                    ],
+                },
+                indent=2,
+            )
+        )
+        database.close()
+        return
+    typer.echo(render_report(report))
     database.close()
 
 
 @app.command()
 def sync(
-    deck: str = typer.Option("langpipe", "--deck", help="Anki deck name."),
+    deck: str = typer.Option("lesan_pipe", "--deck", help="Anki deck name."),
     stage: int = typer.Option(0, "--stage", help="Only export this stage (0 = all)."),
     mock: bool = typer.Option(False, "--mock", help="Use the in-memory mock backend."),
     url: str = typer.Option("http://127.0.0.1:8765", "--url", help="AnkiConnect base URL."),
     db: str = typer.Option(DEFAULT_DB, "--db", help="SQLite database path."),
+    json_output: bool = typer.Option(
+        False, "--json", help="Emit machine-readable JSON instead of human-readable text."
+    ),
 ) -> None:
     """Export cards to Anki through AnkiConnect (or the mock backend)."""
-    database = _open_db(db)
+    database = _open_existing_db(db)
     _require_learner(database)
     all_cards = database.list_cards()
     selected = [c for c in all_cards if stage == 0 or c.stage == stage]
     if not selected:
-        typer.echo("No cards to sync. Run `langpipe generate` first.", err=True)
+        typer.echo("No cards to sync. Run `lesan_pipe generate` first.", err=True)
         database.close()
         raise typer.Exit(code=1)
 
@@ -352,9 +550,25 @@ def sync(
         ",".join(sorted(previously_synced | set(accepted_hashes))),
     )
 
-    typer.echo(f"Sync to backend '{result.backend}' (deck '{deck}'):")
-    typer.echo(f"  {result.notes_added} notes added.")
-    typer.echo(f"  note ids: {result.note_ids}")
+    if json_output:
+        typer.echo(
+            json.dumps(
+                {
+                    "backend": result.backend,
+                    "deck": deck,
+                    "stage": stage,
+                    "notes_added": result.notes_added,
+                    "note_ids": result.note_ids,
+                    "notes_refused": result.notes_refused,
+                    "error": result.error,
+                },
+                indent=2,
+            )
+        )
+    else:
+        typer.echo(f"Sync to backend '{result.backend}' (deck '{deck}'):")
+        typer.echo(f"  {result.notes_added} notes added.")
+        typer.echo(f"  note ids: {result.note_ids}")
     if result.notes_refused:
         typer.echo(
             f"Sync incomplete: {result.error}. "

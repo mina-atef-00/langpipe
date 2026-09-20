@@ -1,7 +1,7 @@
-"""SQLite persistence for langpipe.
+"""SQLite persistence for lesan_pipe.
 
 A thin layer over the standard-library sqlite3 module. Every row maps to a
-Pydantic model from :mod:`langpipe.models`. Datetimes are stored as ISO-8601
+Pydantic model from :mod:`lesan_pipe.models`. Datetimes are stored as ISO-8601
 strings in UTC; tags and extra fields are stored as JSON.
 """
 
@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from langpipe.models import (
+from lesan_pipe.models import (
     Card,
     CurriculumStage,
     Deck,

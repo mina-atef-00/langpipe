@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from langpipe.anki import ANKI_MODEL, AnkiConnectBackend, SyncNote
+from lesan_pipe.anki import ANKI_MODEL, AnkiConnectBackend, SyncNote
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -85,7 +85,7 @@ class FakeAnkiConnect:
     def store_note(self, front: str, back: str) -> None:
         self.notes.append(
             {
-                "deckName": "langpipe",
+                "deckName": "lesan_pipe",
                 "modelName": ANKI_MODEL,
                 "fields": {"Front": front, "Back": back},
                 "tags": [],
@@ -139,11 +139,11 @@ def test_ankiconnect_happy_path_adds_notes(fake_server) -> None:
     fake, url = fake_server
     backend = AnkiConnectBackend(url=url, timeout=2.0)
     assert backend.is_available() is True
-    result = backend.sync([SyncNote("a", "b"), SyncNote("c", "d")], "langpipe")
+    result = backend.sync([SyncNote("a", "b"), SyncNote("c", "d")], "lesan_pipe")
     assert result.reachable is True
     assert result.notes_added == 2
     assert result.note_ids == [100, 101]
-    assert fake.decks == {"langpipe"}
+    assert fake.decks == {"lesan_pipe"}
     assert len(fake.notes) == 2
 
 
@@ -153,7 +153,7 @@ def test_ankiconnect_re_sync_with_existing_notes_adds_zero(fake_server) -> None:
     fake.store_note("a", "b")
     fake.store_note("c", "d")
     backend = AnkiConnectBackend(url=url, timeout=2.0)
-    result = backend.sync([SyncNote("a", "b"), SyncNote("c", "d")], "langpipe")
+    result = backend.sync([SyncNote("a", "b"), SyncNote("c", "d")], "lesan_pipe")
     assert result.reachable is True
     assert result.notes_added == 0
     assert result.note_ids == []
@@ -165,7 +165,7 @@ def test_ankiconnect_re_sync_adds_only_the_new_note(fake_server) -> None:
     fake, url = fake_server
     fake.store_note("a", "b")
     backend = AnkiConnectBackend(url=url, timeout=2.0)
-    result = backend.sync([SyncNote("a", "b"), SyncNote("new", "note")], "langpipe")
+    result = backend.sync([SyncNote("a", "b"), SyncNote("new", "note")], "lesan_pipe")
     assert result.notes_added == 1
     assert result.accepted == [False, True]
     assert len(fake.notes) == 2  # stored + the one new note
@@ -183,7 +183,7 @@ def test_ankiconnect_error_body_surfaces_and_skips_notes(fake_server) -> None:
     fake.fail_next_version = True
     backend = AnkiConnectBackend(url=url, timeout=2.0)
     assert backend.is_available() is False
-    result = backend.sync([SyncNote("a", "b")], "langpipe")
+    result = backend.sync([SyncNote("a", "b")], "lesan_pipe")
     assert result.reachable is False
     assert result.notes_added == 0
 
@@ -206,7 +206,7 @@ def test_ankiconnect_refused_adds_are_not_reported_as_accepted(fake_server) -> N
     fake, url = fake_server
     fake.refuse_adds = True
     backend = AnkiConnectBackend(url=url, timeout=2.0)
-    result = backend.sync([SyncNote("a", "b"), SyncNote("c", "d")], "langpipe")
+    result = backend.sync([SyncNote("a", "b"), SyncNote("c", "d")], "lesan_pipe")
     assert result.reachable is True
     assert result.notes_added == 0
     assert result.note_ids == []
@@ -219,17 +219,17 @@ def test_ankiconnect_refused_adds_are_not_reported_as_accepted(fake_server) -> N
 # ---------------------------------------------------------------------------
 # End-to-end CLI sync against the fake server.
 #
-# Invoke the langpipe CLI as a subprocess so the mock backend cannot mask a
-# broken real path. The venv-embedded langpipe entry point is used when
-# available (repo checkout layout), otherwise `python -m langpipe.cli`.
+# Invoke the lesan_pipe CLI as a subprocess so the mock backend cannot mask a
+# broken real path. The venv-embedded lesan_pipe entry point is used when
+# available (repo checkout layout), otherwise `python -m lesan_pipe.cli`.
 
 
 def _run_cli(workdir, *args: str) -> tuple[int, str, str]:
-    env_hint = ".venv/bin/langpipe"
+    env_hint = ".venv/bin/lesan_pipe"
     if (REPO_ROOT / env_hint).exists():
         cmd = [str(REPO_ROOT / env_hint)]
     else:
-        cmd = [sys.executable, "-m", "langpipe.cli"]
+        cmd = [sys.executable, "-m", "lesan_pipe.cli"]
     proc = subprocess.run(
         cmd + list(args),
         cwd=workdir,
@@ -247,14 +247,14 @@ def test_cli_sync_end_to_end_against_fake_is_idempotent(tmp_path, fake_server) -
         "--db",
         str(workdir / "lp.db"),
         "--pack",
-        str(REPO_ROOT / "src/langpipe/packs/demo-spanish.json"),
+        str(REPO_ROOT / "src/lesan_pipe/packs/demo-spanish.json"),
     ]
     rc, out, err = _run_cli(workdir, "init", "--name", "Harness", "--lang", "es", *common)
     assert rc == 0, f"init failed: {err}"
     rc, out, err = _run_cli(workdir, "generate", "--stage", "1", *common)
     assert rc == 0, f"generate failed: {err}"
 
-    url_args = ["--url", url, "--deck", "langpipe", "--db", str(workdir / "lp.db")]
+    url_args = ["--url", url, "--deck", "lesan_pipe", "--db", str(workdir / "lp.db")]
     rc, out, err = _run_cli(workdir, "sync", *url_args)
     assert rc == 0, f"first sync failed: {err}"
     first = [line.strip() for line in out.splitlines() if "notes added" in line][0]
@@ -281,14 +281,14 @@ def test_cli_sync_refused_notes_are_retried_and_reported(tmp_path, fake_server) 
         "--db",
         str(workdir / "lp.db"),
         "--pack",
-        str(REPO_ROOT / "src/langpipe/packs/demo-spanish.json"),
+        str(REPO_ROOT / "src/lesan_pipe/packs/demo-spanish.json"),
     ]
     rc, _out, err = _run_cli(workdir, "init", "--name", "Harness", "--lang", "es", *common)
     assert rc == 0, err
     rc, _out, err = _run_cli(workdir, "generate", "--stage", "1", *common)
     assert rc == 0, err
 
-    url_args = ["--url", url, "--deck", "langpipe", "--db", str(workdir / "lp.db")]
+    url_args = ["--url", url, "--deck", "lesan_pipe", "--db", str(workdir / "lp.db")]
     rc, out, err = _run_cli(workdir, "sync", *url_args)
     assert rc != 0, out
     assert "refused" in (err + out)
@@ -312,7 +312,7 @@ def test_cli_sync_ledger_is_not_stage_scoped(tmp_path) -> None:
         "--db",
         str(workdir / "lp.db"),
         "--pack",
-        str(REPO_ROOT / "src/langpipe/packs/demo-spanish.json"),
+        str(REPO_ROOT / "src/lesan_pipe/packs/demo-spanish.json"),
     ]
     rc, _out, err = _run_cli(workdir, "init", "--name", "Harness", "--lang", "es", *common)
     assert rc == 0, err
@@ -336,7 +336,7 @@ def test_cli_sync_unreachable_exits_nonzero(tmp_path) -> None:
         "--db",
         str(workdir / "lp.db"),
         "--pack",
-        str(REPO_ROOT / "src/langpipe/packs/demo-spanish.json"),
+        str(REPO_ROOT / "src/lesan_pipe/packs/demo-spanish.json"),
     ]
     rc, out, err = _run_cli(workdir, "init", "--name", "Harness", "--lang", "es", *common)
     assert rc == 0, err
@@ -348,7 +348,7 @@ def test_cli_sync_unreachable_exits_nonzero(tmp_path) -> None:
         "--url",
         "http://127.0.0.1:1",
         "--deck",
-        "langpipe",
+        "lesan_pipe",
         "--db",
         str(workdir / "lp.db"),
     )

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from langpipe.anki import AnkiConnectBackend, MockAnkiBackend, SyncNote
+from lesan_pipe.anki import AnkiConnectBackend, MockAnkiBackend, SyncNote
 
 
 def test_mock_backend_sync() -> None:

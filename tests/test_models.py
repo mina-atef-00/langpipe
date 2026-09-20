@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from langpipe.models import Card, Language, LearnerState, Note, ReviewEvent, utcnow
+from lesan_pipe.models import Card, Language, LearnerState, Note, ReviewEvent, utcnow
 
 
 def test_language_round_trips_json() -> None:

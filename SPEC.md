@@ -1,16 +1,16 @@
 # SPEC
 
-Internal specification for langpipe. The user-facing documentation lives in [README.md](README.md); this document covers how the pipeline actually works.
+Internal specification for lesan_pipe. The user-facing documentation lives in [README.md](README.md); this document covers how the pipeline actually works.
 
 ## Scope
 
-langpipe is a language-agnostic learning pipeline. It takes a language pack (vocabulary and grammar entries in JSON), generates practice cards with a deterministic rule-based generator, schedules reviews with SuperMemo SM-2, computes retention analytics from the review log, and can export to Anki through AnkiConnect. The runtime dependencies are `typer` and `pydantic`; storage is SQLite.
+lesan_pipe is a language-agnostic learning pipeline. It takes a language pack (vocabulary and grammar entries in JSON), generates practice cards with a deterministic rule-based generator, schedules reviews with SuperMemo SM-2, computes retention analytics from the review log, and can export to Anki through AnkiConnect. The runtime dependencies are `typer` and `pydantic`; storage is SQLite.
 
 Nothing in the code branches on a language. Language-specific behaviour is data: `script`, `tokenizer`, and `rtl` on the `Language` record, carried in from the pack's `meta` block and shown by `init`.
 
 ## SM-2 scheduling
 
-The scheduler ([`src/langpipe/scheduler.py`](src/langpipe/scheduler.py)) implements classic SuperMemo SM-2, described by Piotr Wozniak's SuperMemo algorithm write-up. Anki's default schedule is a modified SM-2, so behaviour will be familiar to Anki users.
+The scheduler ([`src/lesan_pipe/scheduler.py`](src/lesan_pipe/scheduler.py)) implements classic SuperMemo SM-2, described by Piotr Wozniak's SuperMemo algorithm write-up. Anki's default schedule is a modified SM-2, so behaviour will be familiar to Anki users.
 
 Constants:
 
@@ -36,13 +36,13 @@ Update rule, applied by `Scheduler.review(card, grade, when=None)`:
    clamped so `EF' >= 1.3`. Note the ease is updated only on passes (lapses leave ease unchanged, which also matches SM-2's frequently-glossed behaviour in Wozniak's rules: EF is "undecreased" after lapses).
 4. `due := reviewed_at + interval days`.
 
-All timestamps are UTC, stored as naive datetimes (UTC stripped), per `langpipe.models.utcnow()`. The `when` argument is injectable so tests can pin time.
+All timestamps are UTC, stored as naive datetimes (UTC stripped), per `lesan_pipe.models.utcnow()`. The `when` argument is injectable so tests can pin time.
 
 The scheduler is deterministic: the same card state and grade sequence always produces the same intervals and ease factors.
 
 ## Data model
 
-Pydantic models in [src/langpipe/models.py](src/langpipe/models.py); SQLite persistence in [src/langpipe/db.py](src/langpipe/db.py). The rest of the code never writes SQL directly.
+Pydantic models in [src/lesan_pipe/models.py](src/lesan_pipe/models.py); SQLite persistence in [src/lesan_pipe/db.py](src/lesan_pipe/db.py). The rest of the code never writes SQL directly.
 
 | Model | Purpose | Key fields |
 |---|---|---|
@@ -61,7 +61,7 @@ Note `extra` carries a content `key` (`vocab:<l1>` or `grammar:<name>`) used to 
 
 ## Curriculum
 
-Four default stages (set at `init` from `langpipe.curriculum.DEFAULT_STAGES`):
+Four default stages (set at `init` from `lesan_pipe.curriculum.DEFAULT_STAGES`):
 
 1. **bridge** — 300 vocab, 20 grammar. Vocabulary front-load, SRS-heavy schedule.
 2. **input** — 800 vocab, 40 grammar. Graded readers and slow audio, sentence mining starts.
@@ -72,9 +72,9 @@ These override-adjustable targets are printed by `plan` and drive the per-stage 
 
 ## Generator and language packs
 
-The generator ([src/langpipe/generator.py](src/langpipe/generator.py)) is seeded, rule-based, and produces the same output for the same seed. No language model is involved.
+The generator ([src/lesan_pipe/generator.py](src/lesan_pipe/generator.py)) is seeded, rule-based, and produces the same output for the same seed. No language model is involved.
 
-A language pack is a JSON file with `meta`, `vocabulary`, and `grammar` sections. The bundled example is `src/langpipe/packs/demo-spanish.json`. Vocabulary entries have `l1`, `l2`, `stage`, optional `pos`, `tags`, and optional `example` / `example_translation`. Grammar entries have `name`, `stage`, `explanation`, and `examples` (prompt/answer pairs).
+A language pack is a JSON file with `meta`, `vocabulary`, and `grammar` sections. The bundled example is `src/lesan_pipe/packs/demo-spanish.json`. Vocabulary entries have `l1`, `l2`, `stage`, optional `pos`, `tags`, and optional `example` / `example_translation`. Grammar entries have `name`, `stage`, `explanation`, and `examples` (prompt/answer pairs).
 
 `generate --stage N --seed S` emits, per vocabulary item: a recognition card (L1 -> L2), a production card (L2 -> L1), and a reading card when the item carries an example sentence. Each grammar example becomes a grammar card. New cards are created due immediately (`due = utcnow()`).
 
@@ -84,7 +84,7 @@ Naming caveat, stated plainly because it reads backwards at first glance: `l1` i
 
 ## CLI reference
 
-`langpipe` is a typer app ([src/langpipe/cli.py](src/langpipe/cli.py)). All commands accept `--db <path>` (default `langpipe.db` in the working directory).
+`lesan_pipe` is a typer app ([src/lesan_pipe/cli.py](src/lesan_pipe/cli.py)). All commands accept `--db <path>` (default `lesan_pipe.db` in the working directory).
 
 | Command | Options | What it does |
 |---|---|---|
@@ -94,13 +94,13 @@ Naming caveat, stated plainly because it reads backwards at first glance: `l1` i
 | `cards` | `--stage` (0 = all), `--db` | Lists cards with id, template, due date, and interval. |
 | `review` | `--grade` (required 0-5), `--db` | Applies SM-2 to one card, updates it, appends a `ReviewEvent`, prints interval/ease transition. |
 | `stats` | `--db` | Prints the analytics report. |
-| `sync` | `--deck` (`langpipe`), `--stage` (0 = all), `--mock`, `--url` (`http://127.0.0.1:8765`), `--db` | Exports cards through a pluggable backend; see next section. |
+| `sync` | `--deck` (`lesan_pipe`), `--stage` (0 = all), `--mock`, `--url` (`http://127.0.0.1:8765`), `--db` | Exports cards through a pluggable backend; see next section. |
 
-Commands other than `init` exit with code 1 and a stderr message when the database has no learner yet (`langpipe init` first). `sync` exits non-zero when AnkiConnect is unreachable instead of silently pretending.
+Commands other than `init` exit with code 1 and a stderr message when the database has no learner yet (`lesan_pipe init` first). `sync` exits non-zero when AnkiConnect is unreachable instead of silently pretending.
 
 ## Analytics
 
-`compute_report` ([src/langpipe/analytics.py](src/langpipe/analytics.py)) reads the database and produces the rendered report printed by `stats`:
+`compute_report` ([src/lesan_pipe/analytics.py](src/lesan_pipe/analytics.py)) reads the database and produces the rendered report printed by `stats`:
 
 - **Retention rate** — passes divided by total reviews.
 - **Lapse rate** — grades below 3 divided by total reviews.
@@ -111,7 +111,7 @@ All figures are derived from the actual `review_events` log and current card sch
 
 ## Sync and idempotency
 
-`sync` exports cards to a pluggable backend. The backend protocol (`AnkiBackend`) is `is_available()` plus `sync(notes, deck) -> SyncResult`, with two implementations ([src/langpipe/anki.py](src/langpipe/anki.py)):
+`sync` exports cards to a pluggable backend. The backend protocol (`AnkiBackend`) is `is_available()` plus `sync(notes, deck) -> SyncResult`, with two implementations ([src/lesan_pipe/anki.py](src/lesan_pipe/anki.py)):
 
 - `MockAnkiBackend` — an in-memory fake for tests and demonstration. Reports reachable, dedupes on `(front, back)`, returns assigned note ids.
 - `AnkiConnectBackend` — a real HTTP client for Anki's AnkiConnect add-on (default `http://127.0.0.1:8765`). On unreachable server, `SyncResult.reachable = False` with an error, and the CLI reports the failure and exits non-zero loudly.

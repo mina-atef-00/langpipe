@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from langpipe.analytics import compute_report
-from langpipe.curriculum import DEFAULT_STAGES, progress_for_stage
-from langpipe.db import Database
-from langpipe.models import Card, Deck, LearnerState, Note, utcnow
-from langpipe.scheduler import Scheduler
+from lesan_pipe.analytics import compute_report
+from lesan_pipe.curriculum import DEFAULT_STAGES, progress_for_stage
+from lesan_pipe.db import Database
+from lesan_pipe.models import Card, Deck, LearnerState, Note, utcnow
+from lesan_pipe.scheduler import Scheduler
 
 
 def _seed_learner(db: Database, now: datetime) -> int:

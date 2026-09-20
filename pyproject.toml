@@ -3,13 +3,13 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "langpipe"
+name = "lesan_pipe"
 version = "0.1.0"
 description = "A language-agnostic learning pipeline: curriculum, graded practice generation, spaced repetition, and retention analytics."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "langpipe contributors" }]
+authors = [{ name = "lesan_pipe contributors" }]
 keywords = ["language-learning", "spaced-repetition", "srs", "anki", "curriculum"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -30,10 +30,10 @@ dev = [
 ]
 
 [project.scripts]
-langpipe = "langpipe.cli:app"
+lesan_pipe = "lesan_pipe.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/langpipe"]
+packages = ["src/lesan_pipe"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src", "tests", "README.md", "LICENSE"]
@@ -50,7 +50,7 @@ ignore = ["B008"]  # typer's default arguments use callables
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src/langpipe"]
+files = ["src/lesan_pipe"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

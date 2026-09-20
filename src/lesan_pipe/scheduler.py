@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from langpipe.models import Card, ReviewEvent, utcnow
+from lesan_pipe.models import Card, ReviewEvent, utcnow
 
 MIN_EASE = 1.3
 STARTING_EASE = 2.5

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from typer.testing import CliRunner
 
-from langpipe.cli import app
+from lesan_pipe.cli import app
 
 runner = CliRunner()
 
@@ -109,3 +110,147 @@ def test_review_out_of_range_grade_fails_cleanly(tmp_path: Path) -> None:
     assert result.exit_code == 1
     assert "Grade must be between 0 and 5" in result.output
     assert "Traceback" not in result.output
+
+
+def test_init_refuses_to_overwrite_without_force(tmp_path: Path) -> None:
+    """Re-running init on an existing database must fail, not silently
+    delete the learner's data. WHY: init used to unlink() unconditionally,
+    so a stray re-init wiped all reviews and scheduling history."""
+    db = _init(tmp_path, "guarded", seed=7)
+    before = db.read_bytes()
+    result = runner.invoke(app, ["init", "--db", str(db)])
+    assert result.exit_code == 1
+    assert "--force" in result.output
+    # The existing database is untouched: same bytes, still usable.
+    assert db.read_bytes() == before
+    plan = runner.invoke(app, ["plan", "--db", str(db)])
+    assert plan.exit_code == 0
+
+
+def test_init_force_overwrites(tmp_path: Path) -> None:
+    db = _init(tmp_path, "forced", seed=7)
+    result = runner.invoke(app, ["init", "--db", str(db), "--force", "--seed", "8"])
+    assert result.exit_code == 0, result.output
+    assert "Initialised learner" in result.output
+
+
+def test_init_missing_pack_never_touches_db(tmp_path: Path) -> None:
+    """A bad --pack path must fail before any database is created or
+    deleted. WHY: the old order (unlink, then load pack) destroyed a good
+    database when the pack path was typo'd."""
+    fresh = tmp_path / "fresh.db"
+    result = runner.invoke(app, ["init", "--db", str(fresh), "--pack", "/does/not/exist.json"])
+    assert result.exit_code == 1
+    assert "Language pack not found" in result.output
+    assert not fresh.exists()
+
+    db = _init(tmp_path, "kept")
+    before = db.read_bytes()
+    result = runner.invoke(
+        app, ["init", "--db", str(db), "--force", "--pack", "/does/not/exist.json"]
+    )
+    assert result.exit_code == 1
+    assert db.read_bytes() == before
+
+
+def test_plan_missing_db_fails_without_creating_file(tmp_path: Path) -> None:
+    """plan on a missing database must error, not create an empty file.
+    WHY: Database() connects (creating the file) on open, so a typo'd
+    --db path used to scatter empty databases as a side effect."""
+    missing = tmp_path / "missing.db"
+    result = runner.invoke(app, ["plan", "--db", str(missing)])
+    assert result.exit_code == 1
+    assert "init" in result.output
+    assert not missing.exists()
+
+
+def test_read_commands_missing_db_fail_without_creating_file(tmp_path: Path) -> None:
+    for argv in (
+        ["generate", "--stage", "1"],
+        ["cards"],
+        ["review", "1", "--grade", "4"],
+        ["stats"],
+        ["sync", "--mock"],
+    ):
+        missing = tmp_path / "missing.db"
+        result = runner.invoke(app, [*argv, "--db", str(missing)])
+        assert result.exit_code == 1, argv
+        assert not missing.exists(), argv
+
+
+def test_init_json(tmp_path: Path) -> None:
+    db = tmp_path / "init.json.db"
+    result = runner.invoke(app, ["init", "--db", str(db), "--json"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["vocab_count"] == 56
+    assert payload["grammar_count"] == 8
+    assert payload["language_code"] == "es"
+
+
+def test_plan_json(tmp_path: Path) -> None:
+    db = _init(tmp_path, "planjson")
+    result = runner.invoke(app, ["plan", "--db", str(db), "--json"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert [s["name"] for s in payload["stages"]] == ["bridge", "input", "expansion", "fluency"]
+    assert all("target_vocab" in s and "description" in s for s in payload["stages"])
+
+
+def test_generate_json(tmp_path: Path) -> None:
+    db = _init(tmp_path, "genjson")
+    result = runner.invoke(
+        app, ["generate", "--db", str(db), "--stage", "1", "--seed", "42", "--json"]
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["count"] == 57
+    assert len(payload["cards"]) == 57
+    assert all("prompt" in c and "answer" in c for c in payload["cards"])
+
+
+def test_cards_json(tmp_path: Path) -> None:
+    db = _init(tmp_path, "cardsjson")
+    runner.invoke(app, ["generate", "--db", str(db), "--stage", "1", "--seed", "42"])
+    result = runner.invoke(app, ["cards", "--db", str(db), "--json"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert len(payload["cards"]) == 57
+    assert all("due" in c and "interval" in c for c in payload["cards"])
+
+
+def test_review_json(tmp_path: Path) -> None:
+    db = _init(tmp_path, "reviewjson")
+    runner.invoke(app, ["generate", "--db", str(db), "--stage", "1", "--seed", "42"])
+    result = runner.invoke(app, ["review", "1", "--grade", "4", "--db", str(db), "--json"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["card_id"] == 1
+    assert payload["grade"] == 4
+    assert payload["review_id"] == 1
+    assert payload["interval_before"] == 0
+    assert payload["interval_after"] >= 1
+    assert payload["ease_before"] == 2.5
+    assert isinstance(payload["due"], str)
+
+
+def test_stats_json(tmp_path: Path) -> None:
+    db = _init(tmp_path, "statsjson")
+    runner.invoke(app, ["generate", "--db", str(db), "--stage", "1", "--seed", "42"])
+    runner.invoke(app, ["review", "1", "--grade", "4", "--db", str(db)])
+    result = runner.invoke(app, ["stats", "--db", str(db), "--json"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["total_reviews"] == 1
+    assert payload["retention_rate"] == 1.0
+    assert len(payload["stages"]) == 4
+
+
+def test_sync_json(tmp_path: Path) -> None:
+    db = _init(tmp_path, "syncjson")
+    runner.invoke(app, ["generate", "--db", str(db), "--stage", "1", "--seed", "42"])
+    result = runner.invoke(app, ["sync", "--db", str(db), "--mock", "--stage", "1", "--json"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["notes_added"] == 56
+    assert payload["backend"] == "mock"

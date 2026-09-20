@@ -1,11 +1,11 @@
 ---
-name: langpipe
-description: 'Use when the user wants to learn a language — run the learner interview, drive the langpipe CLI to generate and review cards, and sync into Anki.'
+name: lesan_pipe
+description: 'Use when the user wants to learn a language — run the learner interview, drive the lesan_pipe CLI to generate and review cards, and sync into Anki.'
 ---
 
-# langpipe: grounded language-learning pipeline
+# lesan_pipe: grounded language-learning pipeline
 
-langpipe pairs a deterministic CLI (scheduling, stats, Anki sync) with AI-owned work
+lesan_pipe pairs a deterministic CLI (scheduling, stats, Anki sync) with AI-owned work
 (curriculum content, sentences, feedback). Your job as the AI is the interview, the
 grounded content, and honest reporting. The code owns every number that appears in
 an analytics report. Never compute SRS arithmetic yourself and never write to the
@@ -15,7 +15,7 @@ review log directly.
 
 Any intent to learn, relearn, or maintain a language: "teach me Spanish",
 "get me to HSK 3", "keep my French alive". Also when the user has material
-(books, transcripts) and asks what to do with it. Check for langpipe before
+(books, transcripts) and asks what to do with it. Check for lesan_pipe before
 improvising a study chat.
 
 ## Step 1: the learner interview
@@ -80,16 +80,16 @@ levels rather than inventing milestones.
 
 ## Step 2: drive the CLI
 
-All commands take `--db <path>` (default `langpipe.db` in the working
-directory). Run help first on anything unfamiliar: `langpipe --help`,
-`langpipe <command> --help`.
+All commands take `--db <path>` (default `lesan_pipe.db` in the working
+directory). Run help first on anything unfamiliar: `lesan_pipe --help`,
+`lesan_pipe <command> --help`.
 
 ```
-langpipe init --name Learner --lang es --pack <pack.json> --seed 42 --daily 10
-langpipe generate --stage 1 --seed 42 [--count N]
-langpipe review --grade 0-5
-langpipe stats
-langpipe sync --deck langpipe --stage 0 --url http://127.0.0.1:8765
+lesan_pipe init --name Learner --lang es --pack <pack.json> --seed 42 --daily 10
+lesan_pipe generate --stage 1 --seed 42 [--count N]
+lesan_pipe review --grade 0-5
+lesan_pipe stats
+lesan_pipe sync --deck lesan_pipe --stage 0 --url http://127.0.0.1:8765
 ```
 
 - `init` creates the learner, deck, curriculum stages, and one note per pack
@@ -129,13 +129,13 @@ The learner never hunts for material. Three paths:
    frequency lists, subtitle/transcript sources, free graded-reading sites.
    Each entry carries a link, a licence note, and why it fits this learner's
    preset and stage. Anything you cannot verify is labelled `UNVERIFIED`.
-   verified first. A shortlist helper (`langpipe sources`) is specified in
+   verified first. A shortlist helper (`lesan_pipe sources`) is specified in
    the plugin spec but not yet in the CLI: until it ships, keep the shortlist
    in the plugin's `references/` notes.
 2. **Drop-in books.** The learner puts PDFs, EPUBs, or plain text into
    `packs/<language>/sources/`; the pipeline ingests them through the same
    parse-and-index path as everything else. No manual formatting. The
-   ingestion command (`langpipe ingest-sources`) is also spec-not-yet-CLI:
+   ingestion command (`lesan_pipe ingest-sources`) is also spec-not-yet-CLI:
    until it ships, run the pack parse-and-index path directly and tell the
    learner the CLI step is pending, never pretend it ran.
 3. **Corpus-driven vocabulary.** Words are ordered by frequency in the

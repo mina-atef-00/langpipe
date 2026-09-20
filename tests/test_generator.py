@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from langpipe.generator import generate_items, load_pack
-from langpipe.models import LanguagePack
+from lesan_pipe.generator import generate_items, load_pack
+from lesan_pipe.models import LanguagePack
 
-PACK_PATH = Path(__file__).parent.parent / "src" / "langpipe" / "packs" / "demo-spanish.json"
+PACK_PATH = Path(__file__).parent.parent / "src" / "lesan_pipe" / "packs" / "demo-spanish.json"
 
 
 @pytest.fixture(scope="module")

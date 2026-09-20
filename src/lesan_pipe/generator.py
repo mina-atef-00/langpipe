@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from langpipe.models import GrammarEntry, LanguagePack, VocabularyEntry
+from lesan_pipe.models import GrammarEntry, LanguagePack, VocabularyEntry
 
 RECOGNITION = "recognition"
 PRODUCTION = "production"

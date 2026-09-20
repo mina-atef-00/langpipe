@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from langpipe.models import Card, utcnow
-from langpipe.scheduler import Scheduler
+from lesan_pipe.models import Card, utcnow
+from lesan_pipe.scheduler import Scheduler
 
 
 def make_card(interval: int = 0, ease: float = 2.5, reps: int = 0) -> Card:

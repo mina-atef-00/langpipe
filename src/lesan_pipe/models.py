@@ -1,7 +1,7 @@
-"""Pydantic data model for langpipe.
+"""Pydantic data model for lesan_pipe.
 
 Everything the pipeline touches is described here as a serialisable model. The
-SQLite layer in :mod:`langpipe.db` reads and writes these models; the rest of the
+SQLite layer in :mod:`lesan_pipe.db` reads and writes these models; the rest of the
 code never talks to SQL directly.
 """
 
@@ -22,7 +22,7 @@ class Language(BaseModel):
     """A natural language as data.
 
     The only language-specific parts are `script` (writing system) and
-    `tokenizer` (how text is split). Nothing else in langpipe branches on the
+    `tokenizer` (how text is split). Nothing else in lesan_pipe branches on the
     language; a Chinese pack, an Arabic pack, and an English pack differ only in
     these two fields and in the content of their pack file.
     """

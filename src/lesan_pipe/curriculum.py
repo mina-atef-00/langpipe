@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from langpipe.db import Database
-from langpipe.models import CurriculumStage
+from lesan_pipe.db import Database
+from lesan_pipe.models import CurriculumStage
 
 DEFAULT_STAGES: list[CurriculumStage] = [
     CurriculumStage(
