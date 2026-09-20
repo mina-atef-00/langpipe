@@ -1,5 +1,5 @@
 ---
-name: lesan_pipe
+name: lesan-pipe
 description: 'Use when the user wants to learn a language — run the learner interview, drive the lesan_pipe CLI to generate and review cards, and sync into Anki.'
 ---
 

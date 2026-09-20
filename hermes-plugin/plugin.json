@@ -1,6 +1,6 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "lesan_pipe",
+  "name": "lesan-pipe",
   "version": "0.1.0",
   "description": "Grounded language learning: a guided learner interview, a deterministic curriculum and SM-2 scheduler, and honest retention analytics driven through the lesan_pipe CLI.",
   "author": {

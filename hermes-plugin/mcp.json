@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "lesan_pipe": {
+    "pipe": {
       "type": "stdio",
       "command": "python3",
       "args": [

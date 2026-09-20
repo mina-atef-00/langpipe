@@ -1,4 +1,4 @@
-# lesan_pipe — Agent Plugins v1 package
+# lesan-pipe — Agent Plugins v1 package
 
 Portable plugin package for [lesan_pipe](https://github.com/mina-atef-00/lesan_pipe), a
 language-learning pipeline: a guided learner interview, a deterministic curriculum and
@@ -12,7 +12,7 @@ plugin loads lives inside `hermes-plugin/`, and the host installs it from
 hermes-plugin/
 ├── plugin.json                 # Agent Plugins v1 manifest
 ├── mcp.json                    # stdio MCP server entry
-├── skills/lesan_pipe/SKILL.md    # the learner-interview skill
+├── skills/lesan-pipe/SKILL.md    # the learner-interview skill
 ├── server/lesan_pipe_mcp.py      # stdio MCP server (stdlib only)
 └── README.md
 ```
@@ -21,8 +21,8 @@ hermes-plugin/
 
 | Surface | Contents |
 |---|---|
-| Skill `lesan_pipe` | The learner interview, preset selection, grounding rules, and the CLI workflow. |
-| MCP server `lesan_pipe` | Seven tools that drive the real CLI: `lesan_pipe_init`, `lesan_pipe_plan`, `lesan_pipe_generate`, `lesan_pipe_cards`, `lesan_pipe_review`, `lesan_pipe_stats`, `lesan_pipe_sync`. |
+| Skill `lesan-pipe` | The learner interview, preset selection, grounding rules, and the CLI workflow. |
+| MCP server `pipe` | Seven tools that drive the real CLI: `lesan_pipe_init`, `lesan_pipe_plan`, `lesan_pipe_generate`, `lesan_pipe_cards`, `lesan_pipe_review`, `lesan_pipe_stats`, `lesan_pipe_sync`. |
 
 The server is a thin bridge. It builds CLI arguments, runs the console script, and
 returns what the script printed. It never reimplements SM-2, the analytics, or the

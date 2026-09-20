@@ -1,6 +1,6 @@
 # references/ — grounding citations for the lesan_pipe skill
 
-The skill (`skills/lesan_pipe/SKILL.md`) promises that cited sources live in
+The skill (`skills/lesan-pipe/SKILL.md`) promises that cited sources live in
 the plugin's `references/` directory so the chain is followable. This
 directory is that path. It holds citations and lookup notes, not
 redistributed content: check each licence before downloading anything,

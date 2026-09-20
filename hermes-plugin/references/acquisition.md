@@ -23,7 +23,7 @@ shadowing; SRS only for corrections).
 - Swain, M. (1985). Communicative competence: some roles of
   comprehensible input and comprehensible output in its development.
   In Gass & Madden (eds.), *Input in Second Language Acquisition*.
-  Newbury House. The output claim behind conversation-first plans:
+  Newbury House. Conversation-first plans rest on this output claim:
   producing language forces noticing and hypothesis-testing.
 - Swain, M. (2005). The output hypothesis: theory and research. In
   Hinkel (ed.), *Handbook of Research in Second Language Teaching
