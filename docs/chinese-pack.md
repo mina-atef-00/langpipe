@@ -73,8 +73,8 @@ unlocks read the pack/tags, not the shuffled output.
 
 * Media gap above — the one dimension where Anki-only still wins.
 * 37 English glosses cover 2+ Chinese words each (e.g. 星期天/星期日
-  both "sunday"). Both notes are kept; same-gloss cards link to one
-  note via the shared `vocab:<l1>` content key. Same ambiguity exists
+  both "sunday"). Both notes are kept; each card links to its own entry
+  via the stage-qualified content key. Same ambiguity exists
   in the deck itself.
 * Full-deck sync collapses 79 identical front/back pairs (mostly
   repeated example sentences) — the same duplicates Anki would refuse.

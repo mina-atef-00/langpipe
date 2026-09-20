@@ -34,6 +34,25 @@ READING = "reading"
 GRAMMAR = "grammar"
 
 
+def vocab_note_key(stage: int, l1: str, l2: str) -> str:
+    """Stable identity for a vocabulary note: one pack entry, one key.
+
+    The English gloss (``l1``) repeats across stages (e.g. 国/stage-1 and
+    国家/stage-3 are both "country, nation") and even within a stage
+    (e.g. two stage-1 entries for 多), so a gloss-only key collapses
+    distinct notes and mis-attributes cards. The (stage, l1, l2) triple
+    is unique within a pack, which keeps the ``generate`` note lookup 1:1.
+    ``front``/``back`` are untouched, so sync identity (SHA-256 of
+    front+back) is stable.
+    """
+    return f"vocab:{stage}\x1f{l1}\x1f{l2}"
+
+
+def grammar_note_key(stage: int, name: str) -> str:
+    """Stable identity for a grammar note: one pack entry, one key."""
+    return f"grammar:{stage}\x1f{name}"
+
+
 @dataclass(frozen=True)
 class GeneratedItem:
     """One practice card to be materialised as a note plus a card."""
@@ -77,7 +96,7 @@ def _items_for_vocab(v: VocabularyEntry) -> list[GeneratedItem]:
             pos=v.pos,
             tags=list(v.tags),
             extra={
-                "key": f"vocab:{v.l1}",
+                "key": vocab_note_key(v.stage, v.l1, v.l2),
                 "example": v.example,
                 "example_translation": v.example_translation,
             },
@@ -92,7 +111,7 @@ def _items_for_vocab(v: VocabularyEntry) -> list[GeneratedItem]:
             answer=v.l1,
             pos=v.pos,
             tags=list(v.tags),
-            extra={"key": f"vocab:{v.l1}"},
+            extra={"key": vocab_note_key(v.stage, v.l1, v.l2)},
         ),
     ]
     if v.example:
@@ -107,7 +126,7 @@ def _items_for_vocab(v: VocabularyEntry) -> list[GeneratedItem]:
                 answer=v.example_translation,
                 pos=v.pos,
                 tags=list(v.tags),
-                extra={"key": f"vocab:{v.l1}"},
+                extra={"key": vocab_note_key(v.stage, v.l1, v.l2)},
             )
         )
     return items
@@ -130,7 +149,11 @@ def _items_for_grammar(g: GrammarEntry) -> list[GeneratedItem]:
                 prompt=prompt,
                 answer=answer,
                 tags=["grammar"],
-                extra={"key": f"grammar:{g.name}", "name": g.name, "explanation": g.explanation},
+                extra={
+                    "key": grammar_note_key(g.stage, g.name),
+                    "name": g.name,
+                    "explanation": g.explanation,
+                },
             )
         )
     return items
