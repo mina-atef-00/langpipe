@@ -1,0 +1,64 @@
+# Release to PyPI via Trusted Publishing (OIDC — no API token stored).
+#
+# FILENAME IS LOAD-BEARING: it must stay exactly `publish.yml`. The owner
+# registers this workflow in the PyPI pending-publisher form, and PyPI
+# refuses the publish (silently, at upload time) when the filename differs.
+# Pending-publisher fields:
+#   PyPI project: lesan_pipe
+#   Owner:        mina-atef-00
+#   Repository:   lesan_pipe
+#   Workflow:     publish.yml
+#   Environment:  (none — this workflow requests no environment)
+#
+# To cut a release: bump the version in BOTH pyproject.toml and
+# hermes-plugin/plugin.json (CI fails otherwise), then publish a GitHub
+# Release. The release tag should be v<version> (e.g. v0.2.0).
+
+name: publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Validate plugin packaging
+        run: python3 .github/scripts/check_plugin_packaging.py
+      - name: Check release version
+        run: python3 .github/scripts/check_release_version.py
+      - name: Install build frontend
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+      - name: Build sdist and wheel
+        run: python -m build
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC Trusted Publishing — no token to rotate or leak
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

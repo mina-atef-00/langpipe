@@ -20,6 +20,9 @@ htmlcov/
 *.db-journal
 *.sqlite3
 
+# Hermes kanban worktrees (one per dispatched task)
+.worktrees/
+
 # Editors
 .idea/
 .vscode/
