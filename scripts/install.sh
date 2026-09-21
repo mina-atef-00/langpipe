@@ -49,7 +49,12 @@ fi
 if [ "$REPO" != "$REPO_FALLBACK" ]; then
     echo "note: resolved primary checkout $REPO (invoked from worktree $REPO_FALLBACK)" >&2
 fi
-PLUGIN_LINK="${HOME}/.hermes/plugins/lesan_pipe"
+# The link's directory name MUST equal plugin.json's `name` ("lesan-pipe"):
+# Hermes Agent Plugins v1 rejects a plugin dir whose basename mismatches the
+# manifest, so a wrong name leaves the plugin (and its MCP tools) silently
+# unloaded. Drop any stale pre-fix link under the old underscore name first.
+PLUGIN_LINK="${HOME}/.hermes/plugins/lesan-pipe"
+rm -f "${HOME}/.hermes/plugins/lesan_pipe"
 
 if command -v uv >/dev/null 2>&1; then
     (cd "$REPO" && uv tool install --editable . --force)

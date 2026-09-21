@@ -8,6 +8,8 @@ worktree path back to the primary checkout so the CLI survives cleanup.
 
 from __future__ import annotations
 
+import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -62,3 +64,27 @@ def test_print_repo_from_worktree_resolves_to_primary(tmp_path: Path) -> None:
     resolved = result.stdout.strip()
     assert Path(resolved) == primary
     assert "/.worktrees/" not in resolved
+
+
+def test_plugin_link_name_matches_manifest() -> None:
+    """The linked plugin dir must equal plugin.json's `name`.
+
+    WHY: Hermes Agent Plugins v1 rejects a plugin whose directory basename does
+    not match its manifest name. install.sh linked the plugin as
+    `plugins/lesan_pipe` while plugin.json declared `lesan-pipe`, so Hermes
+    refused that directory and the plugin's seven MCP tools never loaded. This
+    asserts the invariant so the mismatch fails here, not silently in the host.
+    """
+    content = INSTALL_SH.read_text()
+    match = re.search(
+        r'PLUGIN_LINK="\$\{HOME\}/\.hermes/plugins/([A-Za-z0-9._-]+)"', content
+    )
+    assert match is not None, "PLUGIN_LINK assignment not found in install.sh"
+    linked_name = match.group(1)
+
+    manifest = json.loads((REPO_ROOT / "hermes-plugin" / "plugin.json").read_text())
+    assert linked_name == manifest["name"], (
+        f"install.sh links the plugin as {linked_name!r} but plugin.json's name "
+        f"is {manifest['name']!r}; Hermes rejects the mismatch and the plugin "
+        f"(with its MCP tools) is never loaded"
+    )
