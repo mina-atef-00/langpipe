@@ -129,7 +129,7 @@ The learner never hunts for material. Three paths:
    frequency lists, subtitle/transcript sources, free graded-reading sites.
    Each entry carries a link, a licence note, and why it fits this learner's
    preset and stage. Anything you cannot verify is labelled `UNVERIFIED`.
-   verified first. A shortlist helper (`lesan_pipe sources`) is specified in
+   A shortlist helper (`lesan_pipe sources`) is specified in
    the plugin spec but not yet in the CLI: until it ships, keep the shortlist
    in the plugin's `references/` notes.
 2. **Drop-in books.** The learner puts PDFs, EPUBs, or plain text into
