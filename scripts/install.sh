@@ -9,9 +9,46 @@
 #
 # Do NOT `pip install lesan_pipe` / `pipx install lesan_pipe`: that name belongs
 # to an unrelated project on PyPI and would install the wrong tool.
+#
+# The global CLI must ALWAYS install from the PRIMARY checkout, never from a
+# git worktree: install.sh may itself live inside <repo>/.worktrees/<task-id>,
+# and an editable install from there dies with ModuleNotFoundError the moment
+# that worktree is pruned. Resolution below maps any worktree path back to the
+# primary checkout via the common git dir.
 set -eu
 
-REPO="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_FALLBACK="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Print the primary checkout for a given path inside a repo/worktree.
+# Falls back to the input dir when git is missing or this is not a git
+# checkout (e.g. an sdist tarball).
+primary_checkout() {
+    _dir="$1"
+    if command -v git >/dev/null 2>&1; then
+        _common="$(git -C "$_dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+        if [ -n "${_common:-}" ]; then
+            _primary="$(dirname "$_common")"
+            if [ -f "$_primary/pyproject.toml" ]; then
+                printf '%s\n' "$_primary"
+                return 0
+            fi
+        fi
+    fi
+    printf '%s\n' "$_dir"
+}
+
+REPO="$(primary_checkout "$REPO_FALLBACK")"
+
+if [ "${1:-}" = "--print-repo" ]; then
+    # Dry run for tests: print the resolved install source without installing.
+    printf '%s\n' "$REPO"
+    exit 0
+fi
+
+if [ "$REPO" != "$REPO_FALLBACK" ]; then
+    echo "note: resolved primary checkout $REPO (invoked from worktree $REPO_FALLBACK)" >&2
+fi
 PLUGIN_LINK="${HOME}/.hermes/plugins/lesan_pipe"
 
 if command -v uv >/dev/null 2>&1; then
