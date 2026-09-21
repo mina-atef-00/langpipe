@@ -16,7 +16,7 @@ from lesan_pipe.analytics import compute_report, render_report
 from lesan_pipe.anki import AnkiConnectBackend, MockAnkiBackend, SyncNote
 from lesan_pipe.curriculum import DEFAULT_STAGES
 from lesan_pipe.db import Database
-from lesan_pipe.generator import generate_items, load_pack
+from lesan_pipe.generator import generate_items, grammar_note_key, load_pack, vocab_note_key
 from lesan_pipe.models import (
     Card,
     CurriculumStage,
@@ -145,7 +145,7 @@ def init(
                 pos=v.pos,
                 tags=list(v.tags),
                 extra={
-                    "key": f"vocab:{v.l1}",
+                    "key": vocab_note_key(v.stage, v.l1, v.l2),
                     "example": v.example,
                     "example_translation": v.example_translation,
                 },
@@ -161,7 +161,7 @@ def init(
                 back=g.explanation,
                 stage=g.stage,
                 tags=["grammar"],
-                extra={"key": f"grammar:{g.name}"},
+                extra={"key": grammar_note_key(g.stage, g.name)},
             )
         )
 
